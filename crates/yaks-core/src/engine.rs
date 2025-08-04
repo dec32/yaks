@@ -1,6 +1,9 @@
 use std::collections::{HashMap, VecDeque};
 
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::{
+    sync::mpsc::{self, Receiver, Sender},
+    task::JoinSet,
+};
 
 use crate::{
     Result,
@@ -48,47 +51,46 @@ impl Engine {
         }
 
         tokio::spawn(async move {
-            // spawning tasks according to the set parallelism
+            let mut set = JoinSet::new();
+            let tx = tx;
+            // spawning jobs according to the set parallelism
             while self.jobs.len() < jobs {
-                if self.run_more(tx.clone()) {
+                if self.run_more(tx.clone(), &mut set) {
                     continue;
                 }
                 break;
             }
-
-            // listening tasks, and be ready to drop the final sender
-            let mut last_tx = Some(tx);
-            while let Some(event) = rx.recv().await {
-                match &event {
-                    Event::Prep(..) | Event::Started(..) | Event::Updated(..) => (),
-                    Event::Fail(id, _err) => {
-                        // save failed tasks for later retry (not yet implemented)
-                        let task = self.jobs.remove(id).unwrap();
-                        self.failures.push_back(task);
-                    }
-                    Event::Finished(id) => {
-                        self.jobs.remove(id);
-                    }
-                };
-                // notice: if you break here the remaining tasks will be ignored.
-                if matches!(&event, Event::Fail(..) | Event::Finished(..)) {
-                    if let Some(tx) = last_tx.take() {
-                        if self.run_more(tx.clone()) {
-                            last_tx = Some(tx)
+            // since there's a `tx` above for cloning, `while let` never breaks.
+            // thus the number of jobs running becomes the termination condition
+            // jobs will run until Event::Finished is processed by the loop below
+            while !set.is_empty() {
+                if let Some(event) = rx.recv().await {
+                    match &event {
+                        Event::Prep(..) | Event::Started(..) | Event::Updated(..) => (),
+                        Event::Fail(id, _err) => {
+                            // save failed tasks for later retry (not yet implemented)
+                            let task = self.jobs.remove(id).unwrap();
+                            self.failures.push_back(task);
                         }
-                        // else dropped here
+                        Event::Finished(id) => {
+                            self.jobs.remove(id);
+                        }
+                    };
+                    if matches!(&event, Event::Fail(..) | Event::Finished(..)) {
+                        self.run_more(tx.clone(), &mut set);
                     }
+                    ui_tx.send(event).await.expect("UI receiver is closed.")
                 }
-                ui_tx.send(event).await.expect("UI receiver is closed.")
             }
+            assert_eq!(tx.strong_count(), 1);
         });
         Ok(ui_rx)
     }
 
-    fn run_more(&mut self, tx: Sender<Event>) -> bool {
+    fn run_more(&mut self, tx: Sender<Event>, set: &mut JoinSet<()>) -> bool {
         match self.tasks.pop_front() {
             Some(task) => {
-                task.clone().start(tx);
+                set.spawn(task.clone().start(tx));
                 self.jobs.insert(task.id(), task);
                 true
             }

@@ -135,14 +135,12 @@ impl Task {
         Ok(tasks)
     }
 
-    pub fn start(self, tx: Sender<Event>) {
-        tokio::spawn(async move {
-            if let Err(err) = self.clone()._start(tx.clone()).await {
-                tx.send(Event::Fail(self.id(), err))
-                    .await
-                    .expect("APP receiver is closed.");
-            }
-        });
+    pub async fn start(self, tx: Sender<Event>) {
+        if let Err(err) = self.clone()._start(tx.clone()).await {
+            tx.send(Event::Fail(self.id(), err))
+                .await
+                .expect("APP receiver is closed.");
+        }
     }
 
     async fn _start(self, tx: Sender<Event>) -> anyhow::Result<()> {
