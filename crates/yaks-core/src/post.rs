@@ -36,7 +36,7 @@ impl FromStr for Range {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         let split = s
-            .split_once("~")
+            .split_once("-")
             .ok_or(anyhow!("Illegal range literal {s}."))?;
         let start = if split.0.is_empty() {
             0

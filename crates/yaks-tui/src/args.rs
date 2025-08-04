@@ -25,33 +25,33 @@ impl Args {
 struct RawArgs {
     #[argh(
         positional,
-        description = "url of the page to download from. Could also be `{{platform}}/{{user_id}}` (e.g. `fanbox/123456`)"
+        description = "URL of the page to download. Also accepts the format `{{platform}}/{{user_id}}` (e.g. `fanbox/123456`)"
     )]
     link: String,
     #[argh(
         option,
         default = "default_range()",
-        description = "the (inclusive) range of IDs of posts to download. Could be one of `{{start}}~{{end}}` or `{{start}}~` or `~{{end}}`."
+        description = "inclusive range of IDs of posts to download. Can be specified as `{{start}}-{{end}}`, `{{start}}-` or `-{{end}}`."
     )]
     range: String,
-    #[argh(switch, description = "also download covers.")]
+    #[argh(switch, description = "download cover images as well.")]
     cover: bool,
     #[argh(
         option,
         default = "default_out()",
-        description = "where to save the downloaded files."
+        description = "output directory for downloaded files."
     )]
     out: String,
     #[argh(
         option,
         default = "default_template()",
-        description = "template of filenames of downloaded files. Defaults to `{{user}}/{{post_id}}_{{index}}`"
+        description = "filename template of downloaded files. Defaults to `{{user}}/{{post_id}}_{{index}}`."
     )]
     template: String,
     #[argh(
         option,
         default = "default_jobs()",
-        description = "the maximum ammount of paralleli downloading task. Defaults to 8."
+        description = "maximum amount of parallel downloading tasks. Defaults to 8."
     )]
     jobs: usize,
 }
