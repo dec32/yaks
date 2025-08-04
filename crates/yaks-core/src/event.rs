@@ -5,7 +5,9 @@ use crate::{
 
 pub enum Event {
     Posts(usize),
+    NoPosts(Error),
     Tasks(usize),
+    NoTasks(Error),
     Enqueue(Task),
     Start(TaskID, u64),
     Updated(TaskID, u64),

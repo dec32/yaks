@@ -11,8 +11,12 @@ pub type Error = yaks_core::Error;
 
 pub mod args;
 
+// for overviews
 const INIT_TEMPLATE: &str = "{spinner:.blue} {msg}";
+const ERROR_TEMPLATE: &str = "{spinner:.red} {msg}";
 const DOWNLOAD_TEMPLATE: &str = "[{pos}/{len}] {msg}{spinner:.white}";
+
+// for tasks
 const ENQUEUE_TEMPLATE: &str = "{spinner:.dim} {msg:<20} [{elapsed_precise}] [{wide_bar:.dim/dim}]";
 const RUNNING_TEMPLATE: &str = "{spinner:.green} {msg:<20} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})";
 const FAILED_TEMPLATE: &str =
@@ -41,6 +45,10 @@ async fn main() -> Result {
     let init_style = ProgressStyle::default_bar()
         .template(INIT_TEMPLATE)
         .unwrap();
+    let error_style = ProgressStyle::default_bar()
+        .template(ERROR_TEMPLATE)
+        .unwrap()
+        .tick_chars("!!");
     let download_style = ProgressStyle::default_bar()
         .template(DOWNLOAD_TEMPLATE)
         .unwrap()
@@ -71,13 +79,24 @@ async fn main() -> Result {
 
     // render from app events
     let overview = mp.add(ProgressBar::new(0));
-    overview.set_message("Collecting posts");
+    overview.set_message("Scraping posts");
     overview.set_style(init_style);
     overview.enable_steady_tick(Duration::from_millis(50));
     while let Some(event) = rx.recv().await {
         match event {
+            Event::NoPosts(err) => {
+                overview.set_style(error_style.clone());
+                overview.set_message(format!("Failed to collect posts :(\n{err}"));
+                break;
+            }
             Event::Posts(_posts) => {
                 overview.set_message(format!("Creating tasks"));
+            }
+            Event::NoTasks(err) => {
+                overview.set_style(error_style.clone());
+                overview.set_message(format!("Failed to creat tasks :(\n{err}"));
+                println!("{err}");
+                break;
             }
             Event::Tasks(tasks) => {
                 overview.set_length(tasks as u64);
@@ -121,6 +140,5 @@ async fn main() -> Result {
             }
         }
     }
-    overview.set_message("Clear :)");
     Ok(())
 }

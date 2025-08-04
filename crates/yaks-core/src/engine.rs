@@ -68,13 +68,23 @@ impl Engine {
 
         tokio::spawn(async move {
             // collect posts
-            let posts = Post::collect(platform, uid, range).await.unwrap();
+            let posts = match Post::collect(platform, uid, range).await {
+                Ok(posts) => posts,
+                Err(err) => {
+                    ui_tx.send(Event::NoPosts(err)).await.unwrap();
+                    return;
+                }
+            };
             ui_tx.send(Event::Posts(posts.len())).await.unwrap();
 
             // convert them into (pending) tasks
-            self.tasks = Task::prep(posts, uid, username, cover, &out, template)
-                .await
-                .unwrap();
+            self.tasks = match Task::prep(posts, uid, username, cover, &out, template).await {
+                Ok(tasks) => tasks,
+                Err(err) => {
+                    ui_tx.send(Event::NoTasks(err)).await.unwrap();
+                    return;
+                }
+            };
             ui_tx.send(Event::Tasks(self.tasks.len())).await.unwrap();
 
             // spawning jobs according to the set parallelism
@@ -91,7 +101,9 @@ impl Engine {
             while !set.is_empty() {
                 if let Some(event) = rx.recv().await {
                     match &event {
+                        Event::NoPosts(..) => unreachable!(),
                         Event::Posts(..) => unreachable!(),
+                        Event::NoTasks(..) => unreachable!(),
                         Event::Tasks(..) => unreachable!(),
                         Event::Enqueue(..) => (),
                         Event::Start(..) => (),
@@ -107,10 +119,12 @@ impl Engine {
                     };
                     if matches!(&event, Event::Fail(..) | Event::Finished(..)) {
                         self.run_more(tx.clone(), &mut set);
+                        println!("size of set {}", set.len());
                     }
                     ui_tx.send(event).await.unwrap()
                 }
             }
+            println!("out of loop");
             assert_eq!(tx.strong_count(), 1);
         });
         Ok(ui_rx)
