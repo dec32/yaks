@@ -41,6 +41,7 @@ impl Task {
     // todo throw events
     pub async fn prep(
         posts: Vec<Post>,
+        username: &'static str,
         cover: bool,
         out: &'static str,
         template: &'static str,
@@ -54,7 +55,7 @@ impl Task {
                 let Some(post) = posts.pop() else {
                     break;
                 };
-                set.spawn(Self::prep_one(post, cover, out, template));
+                set.spawn(Self::prep_one(post, username, cover, out, template));
             }
         }
         while let Some(res) = set.join_next().await {
@@ -65,7 +66,12 @@ impl Task {
     }
 
     pub async fn prep_one(
-        Post { id, user, title }: Post,
+        Post {
+            id,
+            user_id: user,
+            title,
+        }: Post,
+        username: &'static str,
         cover: bool,
         dest: &'static str,
         template: &'static str,
@@ -112,6 +118,7 @@ impl Task {
             // todo use runtime formatting library
             let location = location
                 .replace("{user_id}", &user.to_string())
+                .replace("{username}", username)
                 .replace("{post_id}", &id.to_string())
                 .replace("{index}", &index.to_string())
                 .replace("{title}", &title)

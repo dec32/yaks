@@ -6,6 +6,7 @@ pub type Error = anyhow::Error;
 pub mod engine;
 pub mod event;
 pub mod post;
+pub mod range;
 pub mod task;
 
 pub const API_BASE: &str = "https://kemono.cr/api/v1";

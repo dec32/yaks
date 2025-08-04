@@ -8,7 +8,8 @@ use tokio::{
 use crate::{
     Result,
     event::Event,
-    post::{Post, Range},
+    post::Post,
+    range::Range,
     task::{Task, TaskID},
 };
 
@@ -44,11 +45,13 @@ impl Engine {
 
         tokio::spawn(async move {
             // collect posts
-            let posts = Post::collect(platform, user_id, range).await.unwrap();
+            let (username, posts) = Post::collect(platform, user_id, range).await.unwrap();
             ui_tx.send(Event::Posts(posts.len())).await.unwrap();
 
             // convert them into (pending) tasks
-            self.tasks = Task::prep(posts, cover, &out, template).await.unwrap();
+            self.tasks = Task::prep(posts, username, cover, &out, template)
+                .await
+                .unwrap();
             ui_tx.send(Event::Tasks(self.tasks.len())).await.unwrap();
 
             // spawning jobs according to the set parallelism

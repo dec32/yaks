@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use clap::Parser;
-use yaks_core::post::Range;
+use yaks_core::range::Range;
 
 use crate::Result;
 
@@ -86,7 +86,7 @@ struct RawArgs {
     out: String,
 
     /// Filename template for downloaded files.
-    #[arg(long, default_value = "{user_id}/{post_id}_{index}")]
+    #[arg(long, default_value = "{username}/{post_id}_{index}")]
     template: String,
 
     /// Maximum amount of parallel downloading tasks.
