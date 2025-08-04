@@ -1,0 +1,21 @@
+[workspace]
+resolver = "3"
+members = ["./crates/*"]
+
+[workspace.dependencies]
+anyhow = "1.0.98"
+argh = "0.1.13"
+bytes = "1.10.1"
+env_logger = "0.11.8"
+indicatif = { version = "0.17", features = ["in_memory"] }
+log = "0.4.27"
+reqwest = { version = "0.12", features = ["json", "stream"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_with = { version = "3.14.0", features = ["json"] }
+tokio = { version = "1.0", features = ["fs", "macros", "rt-multi-thread"] }
+derive_more = { version = "2", features = ["display", "deref"] }
+
+
+
+

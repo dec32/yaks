@@ -1,0 +1,19 @@
+[package]
+name = "yakd-tui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+yaks-core = { path = "../yaks-core" }
+
+anyhow.workspace = true
+argh.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_with.workspace = true
+tokio.workspace = true
+bytes.workspace = true
+indicatif.workspace = true
+env_logger.workspace = true
+log.workspace = true
+
