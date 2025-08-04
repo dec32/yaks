@@ -42,18 +42,17 @@ impl Engine {
         // chann for downloader
         let (tx, mut rx) = mpsc::channel(128);
 
-        // collecting posts and convert them into (pending) tasks
-        let posts = Post::collect(platform, user_id, range).await?;
-        self.tasks = Task::prep(posts, cover, &out, template).await?;
-
-        if self.tasks.is_empty() {
-            return Ok(ui_rx);
-        }
-
         tokio::spawn(async move {
-            let mut set = JoinSet::new();
-            let tx = tx;
+            // collect posts
+            let posts = Post::collect(platform, user_id, range).await.unwrap();
+            ui_tx.send(Event::Posts(posts.len())).await.unwrap();
+
+            // convert them into (pending) tasks
+            self.tasks = Task::prep(posts, cover, &out, template).await.unwrap();
+            ui_tx.send(Event::Tasks(self.tasks.len())).await.unwrap();
+
             // spawning jobs according to the set parallelism
+            let mut set = JoinSet::new();
             while self.jobs.len() < jobs {
                 if self.run_more(tx.clone(), &mut set) {
                     continue;
@@ -66,7 +65,11 @@ impl Engine {
             while !set.is_empty() {
                 if let Some(event) = rx.recv().await {
                     match &event {
-                        Event::Prep(..) | Event::Started(..) | Event::Updated(..) => (),
+                        Event::Posts(..) => unreachable!(),
+                        Event::Tasks(..) => unreachable!(),
+                        Event::Enqueue(..) => (),
+                        Event::Start(..) => (),
+                        Event::Updated(..) => (),
                         Event::Fail(id, _err) => {
                             // save failed tasks for later retry (not yet implemented)
                             let task = self.jobs.remove(id).unwrap();
@@ -79,7 +82,7 @@ impl Engine {
                     if matches!(&event, Event::Fail(..) | Event::Finished(..)) {
                         self.run_more(tx.clone(), &mut set);
                     }
-                    ui_tx.send(event).await.expect("UI receiver is closed.")
+                    ui_tx.send(event).await.unwrap()
                 }
             }
             assert_eq!(tx.strong_count(), 1);

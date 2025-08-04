@@ -33,7 +33,7 @@ impl TryFrom<RawArgs> for Args {
             jobs,
         }: RawArgs,
     ) -> std::result::Result<Self, Self::Error> {
-        let range = range.unwrap_or("-".into()).parse()?;
+        let range = range.unwrap_or("~".into()).parse()?;
         let split = link.split("/").collect::<Vec<_>>();
         let (platform, user_id) = if split.len() == 2 {
             (split[0].to_string().leak(), split[1].parse()?)

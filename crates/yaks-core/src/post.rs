@@ -36,7 +36,7 @@ impl FromStr for Range {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         let split = s
-            .split_once("-")
+            .split_once("~")
             .ok_or(anyhow!("Illegal range literal {s}."))?;
         let start = if split.0.is_empty() {
             0
@@ -65,7 +65,6 @@ impl Post {
         let mut offset = 0;
         loop {
             let url = format!("{API_BASE}/{platform}/user/{user_id}/posts-legacy?o={offset}");
-            log::info!("Scrapping page: {}", offset / PAGE_SIZE + 1);
             let resp = client.get(&url).send().await?;
             let status = resp.status();
             if !status.is_success() {
@@ -80,7 +79,6 @@ impl Post {
 
             for post in payload.results {
                 if !range.contains(post.id) {
-                    log::info!("Skipped out-of-range post {}", post.id);
                     continue;
                 }
                 posts.push(post);

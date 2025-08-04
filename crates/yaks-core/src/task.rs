@@ -15,7 +15,7 @@ use tokio::{
     task::JoinSet,
 };
 
-use crate::{API_BASE, Result, event::Event, post::Post};
+use crate::{API_BASE, Result, TIMEOUT_FOR_PREP, TIMEOUT_FOR_START, event::Event, post::Post};
 
 /// A read-only view of tasks that is cheap to clone
 /// along threads.
@@ -84,7 +84,14 @@ impl Task {
 
         let client = Client::new();
         let url = format!("{API_BASE}/fanbox/user/{user}/post/{id}");
-        let payload = client.get(&url).send().await?.json::<Payload>().await?;
+        let payload = client
+            .get(&url)
+            .timeout(TIMEOUT_FOR_PREP)
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Payload>()
+            .await?;
 
         let mut tasks = Vec::new();
         for (index, Preview { name, path, server }) in payload
@@ -112,7 +119,6 @@ impl Task {
 
             let mut out = PathBuf::from(dest).join(&location);
             if fs::try_exists(&out).await? {
-                log::info!("Skipped existing file {:?}.", out.file_name().unwrap());
                 continue;
             }
             let filename = out
@@ -137,13 +143,12 @@ impl Task {
 
     pub async fn start(self, tx: Sender<Event>) {
         if let Err(err) = self.clone()._start(tx.clone()).await {
-            tx.send(Event::Fail(self.id(), err))
-                .await
-                .expect("APP receiver is closed.");
+            tx.send(Event::Fail(self.id(), err)).await.unwrap();
         }
     }
 
     async fn _start(self, tx: Sender<Event>) -> anyhow::Result<()> {
+        tx.send(Event::Enqueue(self.clone())).await.unwrap();
         // setting up the output file and the http response
         let mut dest = {
             if let Some(parent) = self.out.parent() {
@@ -154,15 +159,14 @@ impl Task {
         let client = Client::new();
         let mut resp = client
             .get(self.url.as_ref())
+            .timeout(TIMEOUT_FOR_START)
             .send()
             .await?
             .error_for_status()?;
         let total = resp
             .content_length()
             .ok_or(anyhow!("content-length is missing"))?;
-        let Ok(_) = tx.send(Event::Started(self.clone(), total)).await else {
-            return Ok(());
-        };
+        tx.send(Event::Start(self.id(), total)).await.unwrap();
         // download by chunks
         let mut cur = 0;
         loop {
@@ -179,8 +183,8 @@ impl Task {
                 }
             };
             let stopped = matches!(event, Event::Fail(..) | Event::Finished(..));
-            let adrupted = tx.send(event).await.is_err();
-            if stopped || adrupted {
+            tx.send(event).await.unwrap();
+            if stopped {
                 break Ok(());
             }
         }

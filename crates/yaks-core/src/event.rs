@@ -4,8 +4,10 @@ use crate::{
 };
 
 pub enum Event {
-    Prep(Task),
-    Started(Task, u64),
+    Posts(usize),
+    Tasks(usize),
+    Enqueue(Task),
+    Start(TaskID, u64),
     Updated(TaskID, u64),
     Fail(TaskID, Error),
     Finished(TaskID),
