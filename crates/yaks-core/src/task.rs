@@ -41,6 +41,7 @@ impl Task {
     // todo throw events
     pub async fn prep(
         posts: Vec<Post>,
+        uid: u64,
         username: &'static str,
         cover: bool,
         out: &'static str,
@@ -55,7 +56,7 @@ impl Task {
                 let Some(post) = posts.pop() else {
                     break;
                 };
-                set.spawn(Self::prep_one(post, username, cover, out, template));
+                set.spawn(Self::prep_one(post, uid, username, cover, out, template));
             }
         }
         while let Some(res) = set.join_next().await {
@@ -66,11 +67,8 @@ impl Task {
     }
 
     pub async fn prep_one(
-        Post {
-            id,
-            user_id: user,
-            title,
-        }: Post,
+        Post { id, title }: Post,
+        uid: u64,
         username: &'static str,
         cover: bool,
         dest: &'static str,
@@ -89,7 +87,7 @@ impl Task {
         }
 
         let client = Client::new();
-        let url = format!("{API_BASE}/fanbox/user/{user}/post/{id}");
+        let url = format!("{API_BASE}/fanbox/user/{uid}/post/{id}");
         let payload = client
             .get(&url)
             .timeout(TIMEOUT_FOR_PREP)
@@ -117,7 +115,7 @@ impl Task {
             }
             // todo use runtime formatting library
             let location = location
-                .replace("{user_id}", &user.to_string())
+                .replace("{user_id}", &uid.to_string())
                 .replace("{username}", username)
                 .replace("{post_id}", &id.to_string())
                 .replace("{index}", &index.to_string())

@@ -29,7 +29,7 @@ async fn main() -> Result {
     // args
     let Args {
         platform,
-        user_id,
+        uid,
         range,
         cover,
         out,
@@ -66,7 +66,7 @@ async fn main() -> Result {
 
     // let the app run
     let mut rx = Engine::new()
-        .start(platform, user_id, range, cover, out, template, jobs)
+        .start(platform, uid, range, cover, out, template, jobs)
         .await?;
 
     // render from app events

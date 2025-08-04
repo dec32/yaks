@@ -6,7 +6,7 @@ use crate::Result;
 
 pub struct Args {
     pub platform: &'static str,
-    pub user_id: u64,
+    pub uid: u64,
     pub range: Range,
     pub cover: bool,
     pub out: &'static str,
@@ -35,7 +35,7 @@ impl TryFrom<RawArgs> for Args {
     ) -> std::result::Result<Self, Self::Error> {
         let range = range.unwrap_or("~".into()).parse()?;
         let split = link.split("/").collect::<Vec<_>>();
-        let (platform, user_id) = if split.len() == 2 {
+        let (platform, uid) = if split.len() == 2 {
             (split[0].to_string().leak(), split[1].parse()?)
         } else {
             let Some(index) = split.iter().copied().position(|s| s == "user") else {
@@ -53,7 +53,7 @@ impl TryFrom<RawArgs> for Args {
         let template = template.leak();
         let args = Args {
             platform,
-            user_id,
+            uid,
             range,
             cover,
             out,

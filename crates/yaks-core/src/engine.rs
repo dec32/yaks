@@ -1,12 +1,17 @@
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+    time::Duration,
+};
 
+use reqwest::Client;
+use serde::Deserialize;
 use tokio::{
     sync::mpsc::{self, Receiver, Sender},
     task::JoinSet,
 };
 
 use crate::{
-    Result,
+    API_BASE, Result,
     event::Event,
     post::Post,
     range::Range,
@@ -31,7 +36,7 @@ impl Engine {
     pub async fn start(
         mut self,
         platform: &'static str,
-        user_id: u64,
+        uid: u64,
         range: Range,
         cover: bool,
         out: &'static str,
@@ -43,13 +48,31 @@ impl Engine {
         // chann for downloader
         let (tx, mut rx) = mpsc::channel(128);
 
+        // get username
+        #[derive(Deserialize)]
+        struct Profile {
+            name: String,
+            #[allow(unused)]
+            public_id: String,
+        }
+        let client = Client::new();
+        let profile = client
+            .get(format!("{API_BASE}/{platform}/user/{uid}/profile"))
+            .timeout(Duration::from_secs(30))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Profile>()
+            .await?;
+        let username = profile.name.leak();
+
         tokio::spawn(async move {
             // collect posts
-            let (username, posts) = Post::collect(platform, user_id, range).await.unwrap();
+            let posts = Post::collect(platform, uid, range).await.unwrap();
             ui_tx.send(Event::Posts(posts.len())).await.unwrap();
 
             // convert them into (pending) tasks
-            self.tasks = Task::prep(posts, username, cover, &out, template)
+            self.tasks = Task::prep(posts, uid, username, cover, &out, template)
                 .await
                 .unwrap();
             ui_tx.send(Event::Tasks(self.tasks.len())).await.unwrap();

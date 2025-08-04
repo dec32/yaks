@@ -13,8 +13,6 @@ struct Payload {
 
 #[derive(Debug, Deserialize)]
 struct Props {
-    #[serde(rename = "name")]
-    username: String,
     #[serde(rename = "limit")]
     page_size: usize,
     count: usize,
@@ -25,23 +23,16 @@ struct Props {
 pub struct Post {
     #[serde_as(as = "DisplayFromStr")]
     pub id: u64,
-    #[serde(rename = "user")]
-    #[serde_as(as = "DisplayFromStr")]
-    pub user_id: u64,
     pub title: String,
 }
 
 impl Post {
     // TODO return username
-    pub async fn collect(
-        platform: &str,
-        user_id: u64,
-        range: Range,
-    ) -> Result<(&'static str, Vec<Self>)> {
+    pub async fn collect(platform: &str, user_id: u64, range: Range) -> Result<Vec<Self>> {
         let client = Client::new();
         let mut posts = Vec::new();
         let mut offset = 0;
-        let username = loop {
+        loop {
             let url = format!("{API_BASE}/{platform}/user/{user_id}/posts-legacy?o={offset}");
             let payload = client
                 .get(&url)
@@ -57,13 +48,10 @@ impl Post {
                 }
                 posts.push(post);
             }
-
             offset += payload.props.page_size;
             if offset > payload.props.count {
-                break payload.props.username;
+                break Ok(posts);
             }
-        };
-
-        Ok((username.leak(), posts))
+        }
     }
 }
