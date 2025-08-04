@@ -1,19 +1,21 @@
 [package]
-name = "yakd-tui"
+name = "yaks-tui"
 version = "0.1.0"
 edition = "2024"
+
+[[bin]]
+path = "src/main.rs"
+name = "yaks"
 
 [dependencies]
 yaks-core = { path = "../yaks-core" }
 
 anyhow.workspace = true
-argh.workspace = true
+clap.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_with.workspace = true
 tokio.workspace = true
-bytes.workspace = true
 indicatif.workspace = true
 env_logger.workspace = true
 log.workspace = true
-

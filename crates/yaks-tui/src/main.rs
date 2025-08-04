@@ -27,6 +27,7 @@ async fn main() -> Result {
     env_logger::Builder::from_default_env()
         .filter_level(LevelFilter::Info)
         .init();
+
     // args
     let Args {
         platform,
@@ -43,7 +44,7 @@ async fn main() -> Result {
 
     // let the app run
     let mut rx = Engine::new()
-        .start(&platform, user_id, range, cover, &out, &template, jobs)
+        .start(platform, user_id, range, cover, out, template, jobs)
         .await?;
 
     // render from app events

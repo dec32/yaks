@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use argh::FromArgs;
+use clap::Parser;
 use yaks_core::post::Range;
 
 use crate::Result;
@@ -16,64 +16,13 @@ pub struct Args {
 
 impl Args {
     pub fn from_env() -> Result<Self> {
-        argh::from_env::<RawArgs>().try_into()
+        RawArgs::parse().try_into()
     }
-}
-
-#[derive(Debug, FromArgs)]
-#[argh(description = "args for Yakd")]
-struct RawArgs {
-    #[argh(
-        positional,
-        description = "URL of the page to download. Also accepts the format `{{platform}}/{{user_id}}` (e.g. `fanbox/123456`)"
-    )]
-    link: String,
-    #[argh(
-        option,
-        default = "default_range()",
-        description = "inclusive range of IDs of posts to download. Can be specified as `{{start}}-{{end}}`, `{{start}}-` or `-{{end}}`."
-    )]
-    range: String,
-    #[argh(switch, description = "download cover images as well.")]
-    cover: bool,
-    #[argh(
-        option,
-        default = "default_out()",
-        description = "output directory for downloaded files."
-    )]
-    out: String,
-    #[argh(
-        option,
-        default = "default_template()",
-        description = "filename template of downloaded files. Defaults to `{{user}}/{{post_id}}_{{index}}`."
-    )]
-    template: String,
-    #[argh(
-        option,
-        default = "default_jobs()",
-        description = "maximum amount of parallel downloading tasks. Defaults to 8."
-    )]
-    jobs: usize,
-}
-
-fn default_range() -> String {
-    "~".into()
-}
-
-fn default_out() -> String {
-    "/mnt/c/Users/Administrator/Downloads".into()
-}
-
-fn default_jobs() -> usize {
-    8
-}
-
-fn default_template() -> String {
-    "{user_id}/{post_id}_{index}".into()
 }
 
 impl TryFrom<RawArgs> for Args {
     type Error = crate::Error;
+
     fn try_from(
         RawArgs {
             link,
@@ -84,10 +33,10 @@ impl TryFrom<RawArgs> for Args {
             jobs,
         }: RawArgs,
     ) -> std::result::Result<Self, Self::Error> {
-        let range = range.parse::<Range>()?;
+        let range = range.unwrap_or("-".into()).parse()?;
         let split = link.split("/").collect::<Vec<_>>();
         let (platform, user_id) = if split.len() == 2 {
-            (split[0], split[1])
+            (split[0].to_string().leak(), split[1].parse()?)
         } else {
             let Some(index) = split.iter().copied().position(|s| s == "user") else {
                 return Err(anyhow!("Cannot parse link `{link}`"));
@@ -95,19 +44,52 @@ impl TryFrom<RawArgs> for Args {
             if index >= split.len() {
                 return Err(anyhow!("Cannot parse link `{link}`"));
             }
-            (split[index - 1], split[index + 1])
+            (
+                split[index - 1].to_string().leak(),
+                split[index + 1].parse()?,
+            )
         };
-        let platform = platform.to_string();
-
-        let settings = Args {
-            platform: platform.leak(),
-            template: template.leak(),
-            out: out.leak(),
-            user_id: user_id.parse()?,
+        let out = out.leak();
+        let template = template.leak();
+        let args = Args {
+            platform,
+            user_id,
             range,
             cover,
+            out,
+            template,
             jobs,
         };
-        Ok(settings)
+        Ok(args)
     }
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about = "Yet-another Kemono Scraper", long_about = None)]
+struct RawArgs {
+    /// URL of the page to download.
+    /// Also accepts the format {platform}/{user_id} (e.g. fanbox/123456)
+    #[arg(required = true)]
+    link: String,
+
+    /// Inclusive range of IDs of posts to download.
+    /// Can be specified as {min}-{max}, {min}- or -{max}.
+    #[arg(short, long)]
+    range: Option<String>,
+
+    /// Download cover images as well.
+    #[arg(short, long)]
+    cover: bool,
+
+    /// Output directory for downloaded files.
+    #[arg(short, long, default_value = "/mnt/c/Users/Administrator/Downloads")]
+    out: String,
+
+    /// Filename template for downloaded files.
+    #[arg(long, default_value = "{user_id}/{post_id}_{index}")]
+    template: String,
+
+    /// Maximum amount of parallel downloading tasks.
+    #[arg(short, long, default_value_t = 8)]
+    jobs: usize,
 }
