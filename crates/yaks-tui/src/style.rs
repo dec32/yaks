@@ -36,14 +36,18 @@ macro_rules! progress_style {
 
 // for the top two indicators
 progress_style! {
-    overview,
+    profile,
+    "{spinner:.blue} {msg}",
+    "◴◷◶◵ "
+}
+progress_style! {
+    scrape,
     "{spinner:.blue} [{pos}/{len}] {msg}",
     "◴◷◶◵ "
 }
 progress_style! {
     download,
-    "{spinner:.white} [{pos}/{len}] {msg}",
-    "◜◠◝◞◡◟ "
+    "{spinner:.blue} [{pos}/{len}] {msg}"
 }
 progress_style! {
     error,

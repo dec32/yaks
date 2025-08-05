@@ -66,8 +66,8 @@ impl Task {
             while let Some(joined) = set.join_next().await {
                 match joined.unwrap() {
                     Ok(new_tasks) => {
+                        tx.send(Event::MoreTasks(new_tasks.len())).await.unwrap();
                         tasks.extend(new_tasks.into_iter());
-                        tx.send(Event::MoreTasks(tasks.len())).await.unwrap();
                     }
                     Err(e) => tx.send(Event::NoTasks(e)).await.unwrap(),
                 }

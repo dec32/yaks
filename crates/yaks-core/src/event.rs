@@ -1,12 +1,12 @@
 use crate::{
     Error,
-    post::Post,
     task::{Task, TaskID},
 };
 
 pub enum Event {
     // fetch profile
     NoProfile(Error),
+    Profile,
     // scrape posts
     MorePosts(usize),
     NoPosts(Error),
@@ -22,11 +22,4 @@ pub enum Event {
     Failed(TaskID, Error),
     Finished(TaskID),
     Clear,
-}
-
-pub enum Event2 {
-    NoPost(Error),
-    NewPosts(Vec<Post>),
-    NoTask(Post, Error),
-    NewTask(Task),
 }

@@ -44,7 +44,7 @@ async fn main() -> Result {
     let mut total_tasks = 0;
     let overview = mp.add(ProgressBar::new(0));
     overview.set_message("Fetching profile");
-    overview.set_style(style::overview());
+    overview.set_style(style::profile());
     overview.enable_steady_tick(Duration::from_millis(100));
     while let Some(event) = rx.recv().await {
         match event {
@@ -53,8 +53,12 @@ async fn main() -> Result {
                 overview.finish_with_message(format!("Failed to fetch profile :(\n{e}"));
                 break;
             }
-            Event::MorePosts(posts) => {
+            Event::Profile => {
+                overview.set_style(style::scrape());
                 overview.set_message("Scraping posts");
+            }
+            Event::MorePosts(posts) => {
+
                 overview.inc_length(posts as u64);
             }
             Event::NoPosts(e) => {
@@ -80,6 +84,7 @@ async fn main() -> Result {
                 overview.set_style(style::download());
                 overview.set_message("Downloading");
                 overview.set_length(total_tasks as u64);
+                overview.set_position(0);
             }
             Event::Enqueue(task) => {
                 // creating the bar for the tasks
