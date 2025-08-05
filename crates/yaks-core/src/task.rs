@@ -3,7 +3,6 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
     thread::sleep,
-    time::Duration,
 };
 
 use anyhow::anyhow;
@@ -17,7 +16,7 @@ use tokio::{
     task::JoinSet,
 };
 
-use crate::{API_BASE, COMMON_TIMEOUT, Result, event::Event, post::Post};
+use crate::{client, event::Event, post::Post, Result, API_BASE, TASK_CREATION_BATCH_SIZE, TASK_CREATION_INTERVAL, TIMEOUT};
 
 /// A read-only view of tasks that is cheap to clone
 /// along threads.
@@ -51,7 +50,7 @@ impl Task {
         tx: Sender<Event>,
     ) -> Result<VecDeque<Task>> {
         let mut posts = posts;
-        let batch_size = 6;
+        let batch_size = TASK_CREATION_BATCH_SIZE;
         let mut tasks = VecDeque::new();
         while !posts.is_empty() {
             let mut set = JoinSet::new();
@@ -74,7 +73,7 @@ impl Task {
                 let new_tasks = res??;
                 tasks.extend(new_tasks.into_iter());
             }
-            sleep(Duration::from_millis(200));
+            sleep(TASK_CREATION_INTERVAL);
         }
 
         tx.send(Event::NoMoreTasks).await.unwrap();
@@ -107,7 +106,7 @@ impl Task {
         let url = format!("{API_BASE}/{platform}/user/{user_id}/post/{id}");
         let payload = client
             .get(&url)
-            .timeout(COMMON_TIMEOUT)
+            .timeout(TIMEOUT)
             .send()
             .await?
             .error_for_status()?
@@ -170,7 +169,7 @@ impl Task {
         }
     }
 
-    async fn _start(self, tx: Sender<Event>) -> anyhow::Result<()> {
+    async fn _start(self, tx: Sender<Event>) -> Result {
         // setting up the output file and the http response
         let mut dest = {
             if let Some(parent) = self.out.parent() {
@@ -178,10 +177,8 @@ impl Task {
             }
             File::create(&self.out).await?
         };
-        let client = Client::new();
-        let mut resp = client
+        let mut resp = client()
             .get(self.url.as_ref())
-            .timeout(COMMON_TIMEOUT)
             .send()
             .await?
             .error_for_status()?;
@@ -204,7 +201,7 @@ impl Task {
                     Event::Finished(self.id())
                 }
             };
-            let stopped = matches!(event, Event::Failed(..) | Event::Finished(..));
+            let stopped = matches!(event, Event::Finished(..));
             tx.send(event).await.unwrap();
             if stopped {
                 break Ok(());

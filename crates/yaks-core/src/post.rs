@@ -1,9 +1,8 @@
-use reqwest::ClientBuilder;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
 use tokio::sync::mpsc::Sender;
 
-use crate::{API_BASE, COMMON_TIMEOUT, Result, event::Event, range::Range};
+use crate::{client, event::Event, range::Range, Result, API_BASE};
 
 #[derive(Debug, Deserialize)]
 struct Payload {
@@ -35,8 +34,7 @@ impl Post {
             #[allow(unused)]
             public_id: String,
         }
-        let client = ClientBuilder::new().timeout(COMMON_TIMEOUT).build()?;
-        let profile = client
+        let profile = client()
             .get(format!("{API_BASE}/{platform}/user/{user_id}/profile"))
             .send()
             .await?
@@ -52,7 +50,6 @@ impl Post {
         range: Range,
         tx: Sender<Event>,
     ) -> Result<Vec<Self>> {
-        let client = ClientBuilder::new().timeout(COMMON_TIMEOUT).build()?;
         let mut res = Vec::new();
         let mut offset = 0;
         loop {
@@ -60,7 +57,7 @@ impl Post {
             let Payload {
                 posts,
                 props: Props { page_size, count },
-            } = client
+            } = client()
                 .get(&url)
                 .send()
                 .await?

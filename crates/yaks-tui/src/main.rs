@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Duration, u64};
 
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar};
 use log::LevelFilter;
 use yaks_core::{engine::Engine, event::Event};
 
@@ -9,19 +9,8 @@ use crate::args::Args;
 pub type Result<T = (), E = crate::Error> = std::result::Result<T, E>;
 pub type Error = yaks_core::Error;
 
-pub mod args;
-
-// for overviews
-const OVERVIEW_TEMPLATE: &str = "[{pos}/{len}] {msg}{spinner:.white}";
-const ABORT_TEMPLATE: &str = "{spinner:.red} {msg}";
-
-// for tasks
-const ENQUEUED_TEMPLATE: &str =
-    "{spinner:.dim} {msg:<20} [{elapsed_precise}] [{wide_bar:.dim/dim}]";
-const RUNNING_TEMPLATE: &str = "{spinner:.green} {msg:<20} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})";
-const FAILED_TEMPLATE: &str =
-    "{spinner:.red} {msg:<20} [{elapsed_precise}] [{wide_bar:.red/blue}] {bytes}/{total_bytes}";
-const BAR_CHARS: &str = "#>-";
+mod args;
+mod style;
 
 #[tokio::main]
 async fn main() -> Result {
@@ -42,29 +31,6 @@ async fn main() -> Result {
     } = Args::from_env()?;
 
     // tui
-    let overview_style = ProgressStyle::default_bar()
-        .template(OVERVIEW_TEMPLATE)
-        .unwrap()
-        .tick_strings(&[".", "..", "...", ""]);
-    let abort_style = ProgressStyle::default_bar()
-        .template(ABORT_TEMPLATE)
-        .unwrap()
-        .tick_chars("!!");
-    let enqueued_style = ProgressStyle::default_bar()
-        .template(ENQUEUED_TEMPLATE)
-        .unwrap()
-        .progress_chars(BAR_CHARS)
-        .tick_chars("◜◠◝◞◡◟");
-    let running_style = ProgressStyle::default_bar()
-        .template(RUNNING_TEMPLATE)
-        .unwrap()
-        .progress_chars(BAR_CHARS);
-    let failed_style = ProgressStyle::default_bar()
-        .template(FAILED_TEMPLATE)
-        .unwrap()
-        .progress_chars(BAR_CHARS)
-        .tick_chars("!!");
-
     let mut bars = HashMap::new();
     let mp = MultiProgress::new();
     mp.set_draw_target(indicatif::ProgressDrawTarget::stderr());
@@ -78,12 +44,12 @@ async fn main() -> Result {
     let mut total_tasks = 0;
     let overview = mp.add(ProgressBar::new(0));
     overview.set_message("Fetching profile");
-    overview.set_style(overview_style);
-    overview.enable_steady_tick(Duration::from_millis(50));
+    overview.set_style(style::overview());
+    overview.enable_steady_tick(Duration::from_millis(100));
     while let Some(event) = rx.recv().await {
         match event {
             Event::NoProfile(e) => {
-                overview.set_style(abort_style.clone());
+                overview.set_style(style::error());
                 overview.finish_with_message(format!("Failed to fetch profile :(\n{e}"));
                 break;
             }
@@ -92,7 +58,7 @@ async fn main() -> Result {
                 overview.inc_length(posts as u64);
             }
             Event::NoPosts(e) => {
-                overview.set_style(abort_style.clone());
+                overview.set_style(style::error());
                 overview.finish_with_message(format!("Failed to scrape posts :(\n{e}"));
                 break;
             }
@@ -104,7 +70,7 @@ async fn main() -> Result {
                 overview.inc(1);
             }
             Event::NoTasks(err) => {
-                overview.set_style(abort_style.clone());
+                overview.set_style(style::error());
                 overview.set_message(format!("Failed to create tasks :(\n{err}"));
                 println!("{err}");
                 break;
@@ -112,13 +78,14 @@ async fn main() -> Result {
             Event::NoMoreTasks => {
                 // Download really starts here
                 overview.disable_steady_tick();
+                overview.set_style(style::download());
                 overview.set_message("Downloading");
                 overview.set_length(total_tasks as u64);
             }
             Event::Enqueue(task) => {
                 // creating the bar for the tasks
                 let bar = mp.add(ProgressBar::new(0));
-                bar.set_style(enqueued_style.clone());
+                bar.set_style(style::enqueued());
                 bar.set_length(u64::MAX);
                 bar.set_message(format!("{}", task.filename));
                 bar.enable_steady_tick(Duration::from_millis(200));
@@ -127,7 +94,7 @@ async fn main() -> Result {
             Event::Established(id, total) => {
                 let bar = bars.get(&id).unwrap();
                 bar.set_length(total);
-                bar.set_style(running_style.clone());
+                bar.set_style(style::running());
                 bar.disable_steady_tick();
                 overview.tick();
             }
@@ -138,7 +105,7 @@ async fn main() -> Result {
             }
             Event::Failed(id, _error) => {
                 if let Some(bar) = bars.remove(&id) {
-                    bar.set_style(failed_style.clone());
+                    bar.set_style(style::failed());
                     bar.finish();
                 }
             }
