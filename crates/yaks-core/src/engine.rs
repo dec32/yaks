@@ -47,7 +47,6 @@ impl Engine {
         let (ui_tx, ui_rx) = mpsc::channel(128);
         // chann for downloader
         let (tx, mut rx) = mpsc::channel(128);
-
         // get username
         #[derive(Deserialize)]
         struct Profile {
@@ -65,7 +64,6 @@ impl Engine {
             .json::<Profile>()
             .await?;
         let username = profile.name.leak();
-
         tokio::spawn(async move {
             // collect posts
             let posts = match Post::collect(platform, uid, range).await {
@@ -99,29 +97,34 @@ impl Engine {
             // thus the number of jobs running becomes the termination condition
             // jobs will run until Event::Finished is processed by the loop below
             while !set.is_empty() {
-                if let Some(event) = rx.recv().await {
-                    match &event {
-                        Event::NoPosts(..) => unreachable!(),
-                        Event::Posts(..) => unreachable!(),
-                        Event::NoTasks(..) => unreachable!(),
-                        Event::Tasks(..) => unreachable!(),
-                        Event::Enqueue(..) => (),
-                        Event::Start(..) => (),
-                        Event::Updated(..) => (),
-                        Event::Fail(id, _err) => {
-                            // save failed tasks for later retry (not yet implemented)
-                            let task = self.jobs.remove(id).unwrap();
-                            self.failures.push_back(task);
+                tokio::select! {
+                    // mandatory. the finished jobs won't leave the set if not joined
+                    _ = set.join_next() => (),
+                    // the real loop body
+                    Some(event) = rx.recv() => {
+                        match &event {
+                            Event::NoPosts(..) => unreachable!(),
+                            Event::Posts(..) => unreachable!(),
+                            Event::NoTasks(..) => unreachable!(),
+                            Event::Tasks(..) => unreachable!(),
+                            Event::Enqueue(..) => (),
+                            Event::Start(..) => (),
+                            Event::Updated(..) => (),
+                            Event::Fail(id, _err) => {
+                                // save failed tasks for later retry (not yet implemented)
+                                let task = self.jobs.remove(id).unwrap();
+                                self.failures.push_back(task);
+                            }
+                            Event::Finished(id) => {
+                                self.jobs.remove(id);
+                            }
+                        };
+                        if matches!(&event, Event::Fail(..) | Event::Finished(..)) {
+                            self.run_more(tx.clone(), &mut set);
+                            println!("size of set {}", set.len());
                         }
-                        Event::Finished(id) => {
-                            self.jobs.remove(id);
-                        }
-                    };
-                    if matches!(&event, Event::Fail(..) | Event::Finished(..)) {
-                        self.run_more(tx.clone(), &mut set);
-                        println!("size of set {}", set.len());
+                        ui_tx.send(event).await.unwrap();
                     }
-                    ui_tx.send(event).await.unwrap()
                 }
             }
             println!("out of loop");
