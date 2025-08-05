@@ -2,6 +2,8 @@ use std::{
     collections::VecDeque,
     path::{Path, PathBuf},
     sync::Arc,
+    thread::sleep,
+    time::Duration,
 };
 
 use anyhow::anyhow;
@@ -51,8 +53,8 @@ impl Task {
         let mut posts = posts;
         let batch_size = 6;
         let mut tasks = VecDeque::new();
-        let mut set = JoinSet::new();
         while !posts.is_empty() {
+            let mut set = JoinSet::new();
             for _ in 0..batch_size {
                 let Some(post) = posts.pop() else {
                     break;
@@ -68,11 +70,13 @@ impl Task {
                     tx.clone(),
                 ));
             }
+            while let Some(res) = set.join_next().await {
+                let new_tasks = res??;
+                tasks.extend(new_tasks.into_iter());
+            }
+            sleep(Duration::from_millis(200));
         }
-        while let Some(res) = set.join_next().await {
-            let new_tasks = res??;
-            tasks.extend(new_tasks.into_iter());
-        }
+
         tx.send(Event::NoMoreTasks).await.unwrap();
         Ok(tasks)
     }
