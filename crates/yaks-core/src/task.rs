@@ -15,7 +15,7 @@ use tokio::{
     task::JoinSet,
 };
 
-use crate::{API_BASE, Result, TIMEOUT_FOR_PREP, TIMEOUT_FOR_START, event::Event, post::Post};
+use crate::{API_BASE, COMMON_TIMEOUT, Result, event::Event, post::Post};
 
 /// A read-only view of tasks that is cheap to clone
 /// along threads.
@@ -38,14 +38,14 @@ pub struct TaskData {
 }
 
 impl Task {
-    // todo throw events
-    pub async fn prep(
+    pub async fn create(
         posts: Vec<Post>,
-        uid: u64,
+        user_id: u64,
         username: &'static str,
         cover: bool,
         out: &'static str,
         template: &'static str,
+        tx: Sender<Event>,
     ) -> Result<VecDeque<Task>> {
         let mut posts = posts;
         let batch_size = 6;
@@ -56,23 +56,33 @@ impl Task {
                 let Some(post) = posts.pop() else {
                     break;
                 };
-                set.spawn(Self::prep_one(post, uid, username, cover, out, template));
+                set.spawn(Self::create_one(
+                    post,
+                    user_id,
+                    username,
+                    cover,
+                    out,
+                    template,
+                    tx.clone(),
+                ));
             }
         }
         while let Some(res) = set.join_next().await {
             let new_tasks = res??;
             tasks.extend(new_tasks.into_iter());
         }
+        tx.send(Event::NoMoreTasks).await.unwrap();
         Ok(tasks)
     }
 
-    pub async fn prep_one(
+    pub async fn create_one(
         Post { id, title }: Post,
-        uid: u64,
+        user_id: u64,
         username: &'static str,
         cover: bool,
         dest: &'static str,
         template: &'static str,
+        tx: Sender<Event>,
     ) -> Result<Vec<Task>> {
         #[derive(Debug, Deserialize)]
         struct Payload {
@@ -87,10 +97,10 @@ impl Task {
         }
 
         let client = Client::new();
-        let url = format!("{API_BASE}/fanbox/user/{uid}/post/{id}");
+        let url = format!("{API_BASE}/fanbox/user/{user_id}/post/{id}");
         let payload = client
             .get(&url)
-            .timeout(TIMEOUT_FOR_PREP)
+            .timeout(COMMON_TIMEOUT)
             .send()
             .await?
             .error_for_status()?
@@ -115,7 +125,7 @@ impl Task {
             }
             // todo use runtime formatting library
             let location = location
-                .replace("{user_id}", &uid.to_string())
+                .replace("{user_id}", &user_id.to_string())
                 .replace("{username}", username)
                 .replace("{post_id}", &id.to_string())
                 .replace("{index}", &index.to_string())
@@ -143,17 +153,17 @@ impl Task {
             }));
             tasks.push(task);
         }
+        tx.send(Event::MoreTasks(tasks.len())).await.unwrap();
         Ok(tasks)
     }
 
     pub async fn start(self, tx: Sender<Event>) {
         if let Err(err) = self.clone()._start(tx.clone()).await {
-            tx.send(Event::Fail(self.id(), err)).await.unwrap();
+            tx.send(Event::Failed(self.id(), err)).await.unwrap();
         }
     }
 
     async fn _start(self, tx: Sender<Event>) -> anyhow::Result<()> {
-        tx.send(Event::Enqueue(self.clone())).await.unwrap();
         // setting up the output file and the http response
         let mut dest = {
             if let Some(parent) = self.out.parent() {
@@ -164,14 +174,14 @@ impl Task {
         let client = Client::new();
         let mut resp = client
             .get(self.url.as_ref())
-            .timeout(TIMEOUT_FOR_START)
+            .timeout(COMMON_TIMEOUT)
             .send()
             .await?
             .error_for_status()?;
         let total = resp
             .content_length()
             .ok_or(anyhow!("content-length is missing"))?;
-        tx.send(Event::Start(self.id(), total)).await.unwrap();
+        tx.send(Event::Established(self.id(), total)).await.unwrap();
         // download by chunks
         let mut cur = 0;
         loop {
@@ -187,7 +197,7 @@ impl Task {
                     Event::Finished(self.id())
                 }
             };
-            let stopped = matches!(event, Event::Fail(..) | Event::Finished(..));
+            let stopped = matches!(event, Event::Failed(..) | Event::Finished(..));
             tx.send(event).await.unwrap();
             if stopped {
                 break Ok(());

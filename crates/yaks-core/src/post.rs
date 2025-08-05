@@ -1,8 +1,9 @@
-use reqwest::Client;
+use reqwest::ClientBuilder;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
+use tokio::sync::mpsc::Sender;
 
-use crate::{API_BASE, Result, range::Range};
+use crate::{API_BASE, COMMON_TIMEOUT, Result, event::Event, range::Range};
 
 #[derive(Debug, Deserialize)]
 struct Payload {
@@ -27,30 +28,58 @@ pub struct Post {
 }
 
 impl Post {
-    // TODO return username
-    pub async fn collect(platform: &str, user_id: u64, range: Range) -> Result<Vec<Self>> {
-        let client = Client::new();
-        let mut posts = Vec::new();
+    pub async fn profile(platform: &str, user_id: u64) -> Result<&'static str> {
+        #[derive(Deserialize)]
+        struct Profile {
+            name: String,
+            #[allow(unused)]
+            public_id: String,
+        }
+        let client = ClientBuilder::new().timeout(COMMON_TIMEOUT).build()?;
+        let profile = client
+            .get(format!("{API_BASE}/{platform}/user/{user_id}/profile"))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Profile>()
+            .await?;
+        Ok(profile.name.leak())
+    }
+
+    pub async fn scrape(
+        platform: &str,
+        user_id: u64,
+        range: Range,
+        tx: Sender<Event>,
+    ) -> Result<Vec<Self>> {
+        let client = ClientBuilder::new().timeout(COMMON_TIMEOUT).build()?;
+        let mut res = Vec::new();
         let mut offset = 0;
         loop {
             let url = format!("{API_BASE}/{platform}/user/{user_id}/posts-legacy?o={offset}");
-            let payload = client
+            let Payload {
+                posts,
+                props: Props { page_size, count },
+            } = client
                 .get(&url)
                 .send()
                 .await?
                 .error_for_status()?
-                .json::<Payload>()
+                .json()
                 .await?;
-
-            for post in payload.posts {
+            let mut inc = 0;
+            for post in posts {
                 if !range.contains(post.id) {
                     continue;
                 }
-                posts.push(post);
+                res.push(post);
+                inc += 1;
             }
-            offset += payload.props.page_size;
-            if offset > payload.props.count {
-                break Ok(posts);
+            tx.send(Event::MorePosts(inc)).await.unwrap();
+            offset += page_size;
+            if offset > count {
+                tx.send(Event::NoMorePosts).await.unwrap();
+                break Ok(res);
             }
         }
     }

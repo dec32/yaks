@@ -12,12 +12,12 @@ pub type Error = yaks_core::Error;
 pub mod args;
 
 // for overviews
-const INIT_TEMPLATE: &str = "{spinner:.blue} {msg}";
-const ERROR_TEMPLATE: &str = "{spinner:.red} {msg}";
-const DOWNLOAD_TEMPLATE: &str = "[{pos}/{len}] {msg}{spinner:.white}";
+const OVERVIEW_TEMPLATE: &str = "[{pos}/{len}] {msg}{spinner:.white}";
+const ABORT_TEMPLATE: &str = "{spinner:.red} {msg}";
 
 // for tasks
-const ENQUEUE_TEMPLATE: &str = "{spinner:.dim} {msg:<20} [{elapsed_precise}] [{wide_bar:.dim/dim}]";
+const ENQUEUED_TEMPLATE: &str =
+    "{spinner:.dim} {msg:<20} [{elapsed_precise}] [{wide_bar:.dim/dim}]";
 const RUNNING_TEMPLATE: &str = "{spinner:.green} {msg:<20} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})";
 const FAILED_TEMPLATE: &str =
     "{spinner:.red} {msg:<20} [{elapsed_precise}] [{wide_bar:.red/blue}] {bytes}/{total_bytes}";
@@ -33,7 +33,7 @@ async fn main() -> Result {
     // args
     let Args {
         platform,
-        uid,
+        user_id,
         range,
         cover,
         out,
@@ -42,19 +42,16 @@ async fn main() -> Result {
     } = Args::from_env()?;
 
     // tui
-    let init_style = ProgressStyle::default_bar()
-        .template(INIT_TEMPLATE)
-        .unwrap();
-    let error_style = ProgressStyle::default_bar()
-        .template(ERROR_TEMPLATE)
-        .unwrap()
-        .tick_chars("!!");
-    let download_style = ProgressStyle::default_bar()
-        .template(DOWNLOAD_TEMPLATE)
+    let overview_style = ProgressStyle::default_bar()
+        .template(OVERVIEW_TEMPLATE)
         .unwrap()
         .tick_strings(&[".", "..", "...", ""]);
-    let ready_style = ProgressStyle::default_bar()
-        .template(ENQUEUE_TEMPLATE)
+    let abort_style = ProgressStyle::default_bar()
+        .template(ABORT_TEMPLATE)
+        .unwrap()
+        .tick_chars("!!");
+    let enqueued_style = ProgressStyle::default_bar()
+        .template(ENQUEUED_TEMPLATE)
         .unwrap()
         .progress_chars(BAR_CHARS)
         .tick_chars("◜◠◝◞◡◟");
@@ -74,45 +71,60 @@ async fn main() -> Result {
 
     // let the app run
     let mut rx = Engine::new()
-        .start(platform, uid, range, cover, out, template, jobs)
+        .start(platform, user_id, range, cover, out, template, jobs)
         .await?;
 
     // render from app events
+    let mut total_tasks = 0;
     let overview = mp.add(ProgressBar::new(0));
-    overview.set_message("Scraping posts");
-    overview.set_style(init_style);
+    overview.set_message("Fetching profile");
+    overview.set_style(overview_style);
     overview.enable_steady_tick(Duration::from_millis(50));
     while let Some(event) = rx.recv().await {
         match event {
-            Event::NoPosts(err) => {
-                overview.set_style(error_style.clone());
-                overview.set_message(format!("Failed to collect posts :(\n{err}"));
+            Event::NoProfile(e) => {
+                overview.set_style(abort_style.clone());
+                overview.set_message(format!("Failed to fetch profile :(\n{e}"));
                 break;
             }
-            Event::Posts(_posts) => {
-                overview.set_message(format!("Creating tasks"));
+            Event::MorePosts(posts) => {
+                overview.set_message("Scraping posts");
+                overview.inc_length(posts as u64);
+            }
+            Event::NoPosts(err) => {
+                overview.set_style(abort_style.clone());
+                overview.set_message(format!("Failed to scrape posts :(\n{err}"));
+                break;
+            }
+            Event::NoMorePosts => {
+                overview.set_message("Creating tasks");
+            }
+            Event::MoreTasks(tasks) => {
+                total_tasks += tasks;
+                overview.inc(1);
             }
             Event::NoTasks(err) => {
-                overview.set_style(error_style.clone());
-                overview.set_message(format!("Failed to creat tasks :(\n{err}"));
+                overview.set_style(abort_style.clone());
+                overview.set_message(format!("Failed to create tasks :(\n{err}"));
                 println!("{err}");
                 break;
             }
-            Event::Tasks(tasks) => {
-                overview.set_length(tasks as u64);
-                overview.set_message("Downloading");
-                overview.set_style(download_style.clone());
+            Event::NoMoreTasks => {
+                // Download really starts here
                 overview.disable_steady_tick();
+                overview.set_message("Downloading");
+                overview.set_length(total_tasks as u64);
             }
             Event::Enqueue(task) => {
+                // creating the bar for the tasks
                 let bar = mp.add(ProgressBar::new(0));
-                bar.set_style(ready_style.clone());
+                bar.set_style(enqueued_style.clone());
                 bar.set_length(u64::MAX);
                 bar.set_message(format!("{}", task.filename));
                 bar.enable_steady_tick(Duration::from_millis(200));
                 bars.insert(task.id(), bar);
             }
-            Event::Start(id, total) => {
+            Event::Established(id, total) => {
                 let bar = bars.get(&id).unwrap();
                 bar.set_length(total);
                 bar.set_style(running_style.clone());
@@ -124,7 +136,7 @@ async fn main() -> Result {
                 bar.set_position(cur);
                 overview.tick();
             }
-            Event::Fail(id, _error) => {
+            Event::Failed(id, _error) => {
                 if let Some(bar) = bars.remove(&id) {
                     bar.set_style(failed_style.clone());
                     bar.finish();

@@ -4,13 +4,20 @@ use crate::{
 };
 
 pub enum Event {
-    Posts(usize),
+    // fetch profile
+    NoProfile(Error),
+    // scrape posts
+    MorePosts(usize),
     NoPosts(Error),
-    Tasks(usize),
+    NoMorePosts,
+    // create tasks
+    MoreTasks(usize),
     NoTasks(Error),
+    NoMoreTasks,
+    // download
     Enqueue(Task),
-    Start(TaskID, u64),
+    Established(TaskID, u64),
     Updated(TaskID, u64),
-    Fail(TaskID, Error),
+    Failed(TaskID, Error),
     Finished(TaskID),
 }

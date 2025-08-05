@@ -11,5 +11,4 @@ pub mod task;
 
 pub const API_BASE: &str = "https://kemono.cr/api/v1";
 pub const PAGE_SIZE: u64 = 50;
-pub const TIMEOUT_FOR_PREP: Duration = Duration::from_secs(60);
-pub const TIMEOUT_FOR_START: Duration = Duration::from_secs(30);
+pub const COMMON_TIMEOUT: Duration = Duration::from_secs(30);
