@@ -7,7 +7,6 @@ use std::{
 
 use anyhow::anyhow;
 use derive_more::derive::Deref;
-use reqwest::Client;
 use serde::Deserialize;
 use tokio::{
     fs::{self, File},
@@ -16,7 +15,10 @@ use tokio::{
     task::JoinSet,
 };
 
-use crate::{client, event::Event, post::Post, Result, API_BASE, TASK_CREATION_BATCH_SIZE, TASK_CREATION_INTERVAL, TIMEOUT};
+use crate::{
+    API_BASE, Result, TASK_CREATION_BATCH_SIZE, TASK_CREATION_INTERVAL, client, event::Event,
+    post::Post,
+};
 
 /// A read-only view of tasks that is cheap to clone
 /// along threads.
@@ -48,13 +50,12 @@ impl Task {
         out: &'static str,
         template: &'static str,
         tx: Sender<Event>,
-    ) -> Result<VecDeque<Task>> {
+    ) -> VecDeque<Task> {
         let mut posts = posts;
-        let batch_size = TASK_CREATION_BATCH_SIZE;
         let mut tasks = VecDeque::new();
         while !posts.is_empty() {
             let mut set = JoinSet::new();
-            for _ in 0..batch_size {
+            for _ in 0..TASK_CREATION_BATCH_SIZE {
                 let Some(post) = posts.pop() else {
                     break;
                 };
@@ -69,15 +70,16 @@ impl Task {
                     tx.clone(),
                 ));
             }
-            while let Some(res) = set.join_next().await {
-                let new_tasks = res??;
-                tasks.extend(new_tasks.into_iter());
+            while let Some(joined) = set.join_next().await {
+                match joined.unwrap() {
+                    Ok(new_tasks) => tasks.extend(new_tasks.into_iter()),
+                    Err(e) => tx.send(Event::NoTasks(e)).await.unwrap(),
+                }
             }
             sleep(TASK_CREATION_INTERVAL);
         }
-
         tx.send(Event::NoMoreTasks).await.unwrap();
-        Ok(tasks)
+        tasks
     }
 
     pub async fn create_one(
@@ -102,11 +104,9 @@ impl Task {
             server: String,
         }
 
-        let client = Client::new();
         let url = format!("{API_BASE}/{platform}/user/{user_id}/post/{id}");
-        let payload = client
+        let payload = client()
             .get(&url)
-            .timeout(TIMEOUT)
             .send()
             .await?
             .error_for_status()?

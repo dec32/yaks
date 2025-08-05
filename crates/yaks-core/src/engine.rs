@@ -58,7 +58,7 @@ impl Engine {
                 }
             };
             // convert posts into (pending) tasks
-            self.tasks = match Task::create(
+            self.tasks = Task::create(
                 posts,
                 platform,
                 user_id,
@@ -68,14 +68,7 @@ impl Engine {
                 template,
                 tx.clone(),
             )
-            .await
-            {
-                Ok(tasks) => tasks,
-                Err(err) => {
-                    tx.send(Event::NoTasks(err)).await.unwrap();
-                    return;
-                }
-            };
+            .await;
             // download
             self.download(jobs, tx).await;
         });
@@ -117,7 +110,6 @@ impl Engine {
                     };
                     if matches!(&event, Event::Failed(..) | Event::Finished(..)) {
                         self.run_more(tx.clone(), &mut set).await;
-                        println!("size of set {}", set.len());
                     }
                     ui_tx.send(event).await.unwrap();
                 }
