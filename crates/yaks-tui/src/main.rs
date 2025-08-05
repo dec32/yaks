@@ -69,11 +69,10 @@ async fn main() -> Result {
                 total_tasks += tasks;
                 overview.inc(1);
             }
-            Event::NoTasks(err) => {
+            Event::NoTasks(e) => {
+                // ignore the failed creations
                 overview.set_style(style::error());
-                overview.set_message(format!("Failed to create tasks :(\n{err}"));
-                println!("{err}");
-                break;
+                overview.set_message(format!("Failed to create tasks :(\n{e}"));
             }
             Event::NoMoreTasks => {
                 // Download really starts here

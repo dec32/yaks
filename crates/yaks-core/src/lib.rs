@@ -17,11 +17,8 @@ pub const TIMEOUT: Duration = Duration::from_secs(30);
 pub const TASK_CREATION_INTERVAL: Duration = Duration::from_millis(1000);
 pub const TASK_CREATION_BATCH_SIZE: usize = 5;
 
-
 // static
 pub fn client() -> &'static Client {
     static CLIENT: OnceLock<Client> = OnceLock::new();
-    CLIENT.get_or_init(||{
-        ClientBuilder::new().timeout(TIMEOUT).build().unwrap()
-    })
+    CLIENT.get_or_init(|| ClientBuilder::new().timeout(TIMEOUT).build().unwrap())
 }

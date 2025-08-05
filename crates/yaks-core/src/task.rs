@@ -60,19 +60,15 @@ impl Task {
                     break;
                 };
                 set.spawn(Self::create_one(
-                    post,
-                    platform,
-                    user_id,
-                    username,
-                    cover,
-                    out,
-                    template,
-                    tx.clone(),
+                    post, platform, user_id, username, cover, out, template,
                 ));
             }
             while let Some(joined) = set.join_next().await {
                 match joined.unwrap() {
-                    Ok(new_tasks) => tasks.extend(new_tasks.into_iter()),
+                    Ok(new_tasks) => {
+                        tasks.extend(new_tasks.into_iter());
+                        tx.send(Event::MoreTasks(tasks.len())).await.unwrap();
+                    }
                     Err(e) => tx.send(Event::NoTasks(e)).await.unwrap(),
                 }
             }
@@ -82,6 +78,8 @@ impl Task {
         tasks
     }
 
+    /// creates tasks for files in one posts and returns them.
+    /// no channel shenanigans
     pub async fn create_one(
         Post { id, title }: Post,
         platform: &'static str,
@@ -90,7 +88,6 @@ impl Task {
         cover: bool,
         dest: &'static str,
         template: &'static str,
-        tx: Sender<Event>,
     ) -> Result<Vec<Task>> {
         #[derive(Debug, Deserialize)]
         struct Payload {
@@ -159,7 +156,6 @@ impl Task {
             }));
             tasks.push(task);
         }
-        tx.send(Event::MoreTasks(tasks.len())).await.unwrap();
         Ok(tasks)
     }
 

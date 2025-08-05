@@ -2,7 +2,7 @@ use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
 use tokio::sync::mpsc::Sender;
 
-use crate::{client, event::Event, range::Range, Result, API_BASE};
+use crate::{API_BASE, Result, client, event::Event, range::Range};
 
 #[derive(Debug, Deserialize)]
 struct Payload {

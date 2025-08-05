@@ -7,7 +7,7 @@ use tokio::{
 
 use crate::{
     Result,
-    event::Event,
+    event::{Event, Event2},
     post::Post,
     range::Range,
     task::{Task, TaskID},
@@ -128,6 +128,31 @@ impl Engine {
                 true
             }
             None => false,
+        }
+    }
+
+    #[allow(unused)]
+    async fn run_more2(
+        &mut self,
+        jobs: usize,
+        set: &mut JoinSet<()>,
+        tasks: &mut Receiver<Event2>,
+        reports: Sender<Event2>,
+        ui: Sender<Event2>,
+    ) {
+        while set.len() < jobs {
+            if let Some(event) = tasks.recv().await {
+                match &event {
+                    Event2::NewTask(task) => {
+                        // set.spawn(task.clone().start(reports.clone()));
+                        ui.send(event).await.unwrap()
+                    }
+                    Event2::NoTask(post, e) => ui.send(event).await.unwrap(),
+                    _ => unreachable!(),
+                }
+            } else {
+                break;
+            }
         }
     }
 }
