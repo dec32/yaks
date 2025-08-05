@@ -40,6 +40,7 @@ pub struct TaskData {
 impl Task {
     pub async fn create(
         posts: Vec<Post>,
+        platform: &'static str,
         user_id: u64,
         username: &'static str,
         cover: bool,
@@ -58,6 +59,7 @@ impl Task {
                 };
                 set.spawn(Self::create_one(
                     post,
+                    platform,
                     user_id,
                     username,
                     cover,
@@ -77,6 +79,7 @@ impl Task {
 
     pub async fn create_one(
         Post { id, title }: Post,
+        platform: &'static str,
         user_id: u64,
         username: &'static str,
         cover: bool,
@@ -97,7 +100,7 @@ impl Task {
         }
 
         let client = Client::new();
-        let url = format!("{API_BASE}/fanbox/user/{user_id}/post/{id}");
+        let url = format!("{API_BASE}/{platform}/user/{user_id}/post/{id}");
         let payload = client
             .get(&url)
             .timeout(COMMON_TIMEOUT)

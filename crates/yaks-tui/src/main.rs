@@ -84,16 +84,16 @@ async fn main() -> Result {
         match event {
             Event::NoProfile(e) => {
                 overview.set_style(abort_style.clone());
-                overview.set_message(format!("Failed to fetch profile :(\n{e}"));
+                overview.finish_with_message(format!("Failed to fetch profile :(\n{e}"));
                 break;
             }
             Event::MorePosts(posts) => {
                 overview.set_message("Scraping posts");
                 overview.inc_length(posts as u64);
             }
-            Event::NoPosts(err) => {
+            Event::NoPosts(e) => {
                 overview.set_style(abort_style.clone());
-                overview.set_message(format!("Failed to scrape posts :(\n{err}"));
+                overview.finish_with_message(format!("Failed to scrape posts :(\n{e}"));
                 break;
             }
             Event::NoMorePosts => {
@@ -140,7 +140,6 @@ async fn main() -> Result {
                 if let Some(bar) = bars.remove(&id) {
                     bar.set_style(failed_style.clone());
                     bar.finish();
-                    mp.remove(&bar);
                 }
             }
             Event::Finished(id) => {
@@ -149,6 +148,10 @@ async fn main() -> Result {
                     bar.finish();
                     mp.remove(&bar);
                 }
+            }
+            Event::Clear => {
+                overview.finish_with_message("Clear :)");
+                break;
             }
         }
     }

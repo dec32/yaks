@@ -20,4 +20,5 @@ pub enum Event {
     Updated(TaskID, u64),
     Failed(TaskID, Error),
     Finished(TaskID),
+    Clear,
 }

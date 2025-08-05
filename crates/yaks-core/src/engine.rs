@@ -60,10 +60,11 @@ impl Engine {
             // convert posts into (pending) tasks
             self.tasks = match Task::create(
                 posts,
+                platform,
                 user_id,
                 username,
                 cover,
-                &out,
+                out,
                 template,
                 tx.clone(),
             )
@@ -123,6 +124,7 @@ impl Engine {
             }
         }
         assert_eq!(tx.strong_count(), 1);
+        ui_tx.send(Event::Clear).await.unwrap();
     }
 
     async fn run_more(&mut self, tx: Sender<Event>, set: &mut JoinSet<()>) -> bool {
