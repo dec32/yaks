@@ -1,6 +1,9 @@
 [workspace]
 resolver = "3"
-members = ["./crates/*"]
+members = [
+    "./yaks-core",
+    "./yaks-tui"
+]
 
 [workspace.dependencies]
 anyhow = "1.0.98"
