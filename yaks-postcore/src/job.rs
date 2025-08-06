@@ -85,7 +85,7 @@ async fn browse(
     user_id: UserID,
     profile: Profile,
     cover: bool,
-    dest: &'static str,
+    out: &'static str,
     template: &'static str,
 ) -> anyhow::Result<Vec<Job>> {
     #[derive(Debug, Deserialize)]
@@ -98,6 +98,9 @@ async fn browse(
         name: String,
         path: String,
         server: String,
+    }
+    if template.starts_with("/") {
+        panic!("illegal template {template}");
     }
     let url = format!("{API_BASE}/{platform}/user/{user_id}/post/{id}");
     let payload = client()
@@ -133,9 +136,8 @@ async fn browse(
             .replace("{title}", &title)
             .replace("{filename}", name.to_string_lossy().as_ref());
 
-        let mut out = PathBuf::from(dest).join(&location);
-        // TODO: not the best way to check the exisitence of a file
-        if fs::metadata(&out).await.is_err() {
+        let mut out = PathBuf::from(out).join(&location);
+        if fs::try_exists(&out).await? {
             continue;
         }
         let filename = out

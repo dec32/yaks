@@ -12,6 +12,7 @@ use crate::{
     job::{Job, JobID},
 };
 
+#[derive(Debug)]
 pub enum Prog {
     Init(u64),
     Chunk(u64),
