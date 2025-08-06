@@ -58,7 +58,6 @@ async fn main() -> Result {
                 overview.set_message("Scraping posts");
             }
             Event::MorePosts(posts) => {
-
                 overview.inc_length(posts as u64);
             }
             Event::NoPosts(e) => {

@@ -3,7 +3,7 @@ resolver = "3"
 members = [
     "./yaks-core",
     "./yaks-tui"
-]
+, "yaks-postcore"]
 
 [workspace.dependencies]
 anyhow = "1.0.98"

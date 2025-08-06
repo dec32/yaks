@@ -1,0 +1,14 @@
+[package]
+name = "yaks-postcore"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+smol = "2.0.2"
+serde = { workspace = true } 
+anyhow = { workspace = true } 
+reqwest = { workspace = true }
+serde_with = { workspace = true }
+derive_more = { workspace = true }
+async-stream = "0.3.6"
+futures = "0.3.31"
