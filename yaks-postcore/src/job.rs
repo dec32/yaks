@@ -30,8 +30,7 @@ pub fn create_jobs(posts: Vec<Post>, errors: Sender<crate::Error>) -> channel::R
     // convert vec into chann (ok this is very silly)
     let (post_tx, post_rx) = channel::bounded(POST_BROWSERS);
     smol::spawn(async move {
-        let mut posts = posts.into_iter();
-        while let Some(post) = posts.next() {
+        for post in posts {
             post_tx.send(post).await.unwrap();
         }
     })

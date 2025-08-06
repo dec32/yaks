@@ -9,7 +9,10 @@ mod worker;
 
 pub use engine::Engine;
 
-use crate::{job::Job, post::PostID};
+use crate::{
+    job::{Job, JobID},
+    post::{PostID, Profile},
+};
 pub type Result<T, E = crate::Error> = result::Result<T, E>;
 
 // consts
@@ -28,7 +31,30 @@ pub fn client() -> &'static Client {
 ///
 /// Submodules should only sent data related to its job and
 /// let the engine decide how to represent the data as events.
-pub enum Event {}
+pub enum Event {
+    /// The profile of the artist has been fetched.
+    Profile(Profile),
+    /// A page of posts are scraped.
+    Posts(usize),
+    /// All pages are handled. No more post to offer.
+    PostsExhausted,
+    /// A job is created.
+    Job(Job),
+    /// All posts are browsed. No more jobs to create.
+    JobExhausted,
+    /// A job is added to the download queue.
+    Enqueue(JobID),
+    /// A job has setup its connection with the server.
+    /// The file size (in bytes) is also offered.
+    Init(JobID, u64),
+    /// A job has received a chunk from the server.
+    /// The chunk size (in bytes) is also offered.
+    Chunk(JobID, u64),
+    /// A job has been fully downloaded.
+    Fin(JobID),
+    /// All jobs are downloaded.
+    Clear,
+}
 
 /// Possible errors, which may carry extra metadata.
 ///

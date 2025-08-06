@@ -8,8 +8,8 @@ use smol::{
 use crate::job::{Job, JobID};
 
 pub enum Progress {
-    Established(usize),
-    Chunk(usize),
+    Init(u64),
+    Chunk(u64),
     Fin,
 }
 

@@ -3,7 +3,10 @@ use std::ops::RangeInclusive;
 use futures::FutureExt;
 use smol::channel::{self, Receiver};
 
-use crate::{Event, job, post, worker};
+use crate::{
+    Event, job, post,
+    worker::{self, Progress},
+};
 
 pub struct Engine {}
 
@@ -14,6 +17,9 @@ impl Engine {
         range: RangeInclusive<u64>,
         workers: u8,
     ) -> Receiver<crate::Result<Event>> {
+        use Event as E;
+        use Progress as P;
+
         // event chann (for TUI/GUI)
         let (events, event_rx) = channel::unbounded();
 
@@ -37,16 +43,28 @@ impl Engine {
             };
             let jobs = job::create_jobs(posts, error_tx.clone());
             let progress = worker::start_workers(workers, jobs.clone(), error_tx);
-            // listen for channels
+            // event bus
             futures::select! {
-                job = jobs.recv().fuse() => {
-                    todo!()
+                next = jobs.recv().fuse() => {
+                    let event = match next {
+                        Ok(job) => E::Job(job),
+                        Err(_) => E::JobExhausted
+                    };
+                    events.send(Ok(event)).await.unwrap();
                 },
-                progress = progress.recv().fuse() => {
-                    todo!()
+                next = progress.recv().fuse() => {
+                    let event = match next {
+                        Ok((id, P::Init(total))) => Ok(E::Init(id, total)),
+                        Ok((id, P::Chunk(bytes))) => Ok(E::Chunk(id, bytes)),
+                        Ok((id, P::Fin)) => Ok(E::Fin(id)),
+                        Err(_) => Ok(E::Clear),
+                    };
+                    events.send(event).await.unwrap();
                 },
-                e = errors.recv().fuse() => {
-                    events.send(Err(e.unwrap())).await.unwrap()
+                next = errors.recv().fuse() => {
+                    if let Ok(e) = next {
+                        events.send(Err(e)).await.unwrap();
+                    }
                 },
             }
         })
