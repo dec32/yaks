@@ -1,7 +1,7 @@
 use std::ops::RangeInclusive;
 
 use futures::FutureExt;
-use smol::channel::{self, Receiver};
+use async_channel::{self, Receiver};
 
 use crate::{
     Event, UserID, job,
@@ -12,7 +12,12 @@ use crate::{
 pub struct Engine {}
 
 impl Engine {
+    pub fn new() -> Self {
+        Self {}
+    }
+
     pub fn start(
+        self,
         platform: &'static str,
         user_id: UserID,
         range: RangeInclusive<PostID>,
@@ -25,12 +30,12 @@ impl Engine {
         use Prog as P;
 
         // event chann (for TUI/GUI)
-        let (events, event_rx) = channel::unbounded();
+        let (events, event_rx) = async_channel::unbounded();
 
         // chann for Error
-        let (error_tx, errors) = channel::unbounded();
+        let (error_tx, errors) = async_channel::unbounded();
 
-        smol::spawn(async move {
+        tokio::spawn(async move {
             let profile = match post::fetch_profile(platform, user_id).await {
                 Ok(profile) => profile,
                 Err(e) => {
@@ -55,7 +60,9 @@ impl Engine {
                 template,
                 error_tx.clone(),
             );
+            log::info!("created job chann");
             let progress = worker::start_workers(workers, jobs.clone(), error_tx);
+            log::info!("created progress chann");
             // event bus
             futures::select! {
                 next = jobs.recv().fuse() => {
@@ -80,8 +87,7 @@ impl Engine {
                     }
                 },
             }
-        })
-        .detach();
+        });
         event_rx
     }
 }

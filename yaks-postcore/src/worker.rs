@@ -1,10 +1,10 @@
 use async_stream::try_stream;
-use smol::{
-    channel::{self, Receiver, Sender},
+use futures::{Stream, StreamExt};
+use async_channel::{Receiver, Sender};
+use tokio::{
     fs::{self, File},
     io::AsyncWriteExt,
     pin,
-    stream::{Stream, StreamExt},
 };
 
 use crate::{
@@ -23,18 +23,17 @@ pub enum Prog {
 /// and report the progress in to the `progress` sender
 pub fn start_workers(
     workers: u8,
-    jobs: channel::Receiver<Job>,
+    jobs: Receiver<Job>,
     errors: Sender<crate::Error>,
 ) -> Receiver<(JobID, Prog)> {
-    let (tx, rx) = channel::unbounded();
+    let (tx, rx) = async_channel::unbounded();
     for _ in 0..workers {
         let jobs = jobs.clone();
         let progress = tx.clone();
         let errors = errors.clone();
-        smol::spawn(async move {
+        tokio::spawn(async move {
             work(jobs, progress, errors).await;
-        })
-        .detach();
+        });
     }
     rx
 }
@@ -44,8 +43,8 @@ pub fn start_workers(
 /// 1. report progress in to the sender
 /// 2. capture yielded errors and send them... somewhere?
 async fn work(
-    jobs: channel::Receiver<Job>,
-    tx: channel::Sender<(JobID, Prog)>,
+    jobs: Receiver<Job>,
+    tx: Sender<(JobID, Prog)>,
     errors: Sender<crate::Error>,
 ) {
     while let Ok(job) = jobs.recv().await {

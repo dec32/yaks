@@ -5,10 +5,8 @@ use std::{
 
 use derive_more::Deref;
 use serde::Deserialize;
-use smol::{
-    channel::{self, Sender},
-    fs,
-};
+use async_channel::{self, Receiver, Sender};
+use tokio::fs;
 
 use crate::{
     API_BASE, BRWOSE_INTERVAL, POST_BROWSERS, UserID, client,
@@ -44,16 +42,15 @@ pub fn create_jobs(
     out: &'static str,
     template: &'static str,
     errors: Sender<crate::Error>,
-) -> channel::Receiver<Job> {
-    let (tx, rx) = channel::unbounded();
+) -> Receiver<Job> {
+    let (tx, rx) = async_channel::unbounded();
     // convert vec into chann (ok this is very silly)
-    let (post_tx, post_rx) = channel::bounded(POST_BROWSERS);
-    smol::spawn(async move {
+    let (post_tx, post_rx) = async_channel::bounded(POST_BROWSERS);
+    tokio::spawn(async move {
         for post in posts {
             post_tx.send(post).await.unwrap();
         }
-    })
-    .detach();
+    });
     let posts = post_rx;
 
     // browse post
@@ -61,7 +58,7 @@ pub fn create_jobs(
         let tx = tx.clone();
         let posts = posts.clone();
         let errors = errors.clone();
-        smol::spawn(async move {
+        tokio::spawn(async move {
             while let Ok(post) = posts.recv().await {
                 let id = post.id;
                 match browse(post, platform, user_id, profile, cover, out, template).await {
@@ -75,10 +72,9 @@ pub fn create_jobs(
                         errors.send(e).await.unwrap()
                     }
                 }
-                smol::Timer::after(BRWOSE_INTERVAL).await;
+                tokio::time::sleep(BRWOSE_INTERVAL).await;
             }
-        })
-        .detach();
+        });
     }
     rx
 }

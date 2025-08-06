@@ -6,7 +6,7 @@ use ustr::Ustr;
 
 use crate::{API_BASE, UserID, client};
 
-#[derive(Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize)]
 pub struct Profile {
     #[serde(rename = "name")]
     pub nickname: Ustr,

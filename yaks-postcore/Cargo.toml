@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-smol = "2.0.2"
+
 serde = { workspace = true } 
 anyhow = { workspace = true } 
 reqwest = { workspace = true }
@@ -14,3 +14,6 @@ async-stream = "0.3.6"
 futures = "0.3.31"
 thiserror = "2.0.12"
 ustr = { version = "1.1.0", features = ["serde"] }
+tokio.workspace = true
+async-channel = "2.5.0"
+log.workspace = true

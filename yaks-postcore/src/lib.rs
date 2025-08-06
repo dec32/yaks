@@ -7,16 +7,10 @@ mod job;
 mod post;
 mod worker;
 
+// re-exports
 pub use engine::Engine;
-
-use crate::{
-    job::{Job, JobID},
-    post::{PostID, Profile},
-};
-
-// typses
-pub type Result<T, E = crate::Error> = result::Result<T, E>;
-pub type UserID = u32;
+pub use job::{Job, JobID};
+pub use post::{Post, PostID, Profile};
 
 // consts
 pub(crate) const API_BASE: &str = "https://kemono.cr/api/v1";
@@ -30,10 +24,15 @@ pub(crate) fn client() -> &'static Client {
     INSTANCE.get_or_init(|| ClientBuilder::new().timeout(TIMEOUT).build().unwrap())
 }
 
+// types
+pub type Result<T, E = crate::Error> = result::Result<T, E>;
+pub type UserID = u64;
+
 /// Event sent to the UI, by the engine, not the submodules.
 ///
 /// Submodules should only sent data related to its job and
 /// let the engine decide how to represent the data as events.
+#[derive(Debug)]
 pub enum Event {
     /// The profile of the artist has been fetched.
     Profile(Profile),
