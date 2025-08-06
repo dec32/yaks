@@ -4,8 +4,9 @@ use futures::FutureExt;
 use smol::channel::{self, Receiver};
 
 use crate::{
-    Event, job, post,
-    worker::{self, Progress},
+    Event, UserID, job,
+    post::{self, PostID},
+    worker::{self, Prog},
 };
 
 pub struct Engine {}
@@ -13,12 +14,15 @@ pub struct Engine {}
 impl Engine {
     pub fn start(
         platform: &'static str,
-        user_id: u64,
-        range: RangeInclusive<u64>,
+        user_id: UserID,
+        range: RangeInclusive<PostID>,
+        cover: bool,
+        out: &'static str,
+        template: &'static str,
         workers: u8,
     ) -> Receiver<crate::Result<Event>> {
         use Event as E;
-        use Progress as P;
+        use Prog as P;
 
         // event chann (for TUI/GUI)
         let (events, event_rx) = channel::unbounded();
@@ -34,14 +38,23 @@ impl Engine {
                     return;
                 }
             };
-            let posts = match post::scrape_posts(platform, user_id, profile, range).await {
+            let posts = match post::scrape_posts(platform, user_id, range).await {
                 Ok(posts) => posts,
                 Err(e) => {
                     error_tx.send(crate::Error::Scrape(e)).await.unwrap();
                     return;
                 }
             };
-            let jobs = job::create_jobs(posts, error_tx.clone());
+            let jobs = job::create_jobs(
+                posts,
+                platform,
+                user_id,
+                profile,
+                cover,
+                out,
+                template,
+                error_tx.clone(),
+            );
             let progress = worker::start_workers(workers, jobs.clone(), error_tx);
             // event bus
             futures::select! {

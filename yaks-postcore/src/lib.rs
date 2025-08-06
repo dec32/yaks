@@ -13,16 +13,19 @@ use crate::{
     job::{Job, JobID},
     post::{PostID, Profile},
 };
+
+// typses
 pub type Result<T, E = crate::Error> = result::Result<T, E>;
+pub type UserID = u32;
 
 // consts
-pub const API_BASE: &str = "https://kemono.cr/api/v1";
-pub const TIMEOUT: Duration = Duration::from_secs(30);
-pub const TASK_CREATION_INTERVAL: Duration = Duration::from_millis(1000);
-pub const POST_BROWSERS: usize = 5;
+pub(crate) const API_BASE: &str = "https://kemono.cr/api/v1";
+pub(crate) const TIMEOUT: Duration = Duration::from_secs(30);
+pub(crate) const BRWOSE_INTERVAL: Duration = Duration::from_millis(1000);
+pub(crate) const POST_BROWSERS: usize = 5;
 
 // static
-pub fn client() -> &'static Client {
+pub(crate) fn client() -> &'static Client {
     static INSTANCE: OnceLock<Client> = OnceLock::new();
     INSTANCE.get_or_init(|| ClientBuilder::new().timeout(TIMEOUT).build().unwrap())
 }

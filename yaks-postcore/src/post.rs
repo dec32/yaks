@@ -2,20 +2,21 @@ use std::ops::RangeInclusive;
 
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
+use ustr::Ustr;
 
-use crate::{API_BASE, client};
+use crate::{API_BASE, UserID, client};
 
-#[derive(Deserialize)]
+#[derive(Clone, Copy, Deserialize)]
 pub struct Profile {
     #[serde(rename = "name")]
-    pub nickname: String,
+    pub nickname: Ustr,
     #[allow(unused)]
     #[serde(rename = "public_id")]
-    pub username: String,
+    pub username: Ustr,
 }
 
 /// Get the username of the artist
-pub async fn fetch_profile(platform: &'static str, user_id: u64) -> anyhow::Result<Profile> {
+pub async fn fetch_profile(platform: &'static str, user_id: UserID) -> anyhow::Result<Profile> {
     let profile = client()
         .get(format!("{API_BASE}/{platform}/user/{user_id}/profile"))
         .send()
@@ -38,8 +39,7 @@ pub type PostID = u64;
 
 pub async fn scrape_posts(
     platform: &'static str,
-    user_id: u64,
-    profile: Profile,
+    user_id: UserID,
     range: RangeInclusive<PostID>,
 ) -> anyhow::Result<Vec<Post>> {
     #[derive(Debug, Deserialize)]
@@ -55,5 +55,29 @@ pub async fn scrape_posts(
         page_size: usize,
         count: usize,
     }
-    todo!()
+    let mut res = Vec::new();
+    let mut offset = 0;
+    loop {
+        let url = format!("{API_BASE}/{platform}/user/{user_id}/posts-legacy?o={offset}");
+        let Payload {
+            posts,
+            props: Props { page_size, count },
+        } = client()
+            .get(&url)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        for post in posts {
+            if !range.contains(&post.id) {
+                continue;
+            }
+            res.push(post);
+        }
+        offset += page_size;
+        if offset > count {
+            break Ok(res);
+        }
+    }
 }
