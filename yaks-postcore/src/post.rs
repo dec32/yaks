@@ -3,7 +3,7 @@ use std::ops::RangeInclusive;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
 
-use crate::{API_BASE, Result, client};
+use crate::{API_BASE, client};
 
 #[derive(Deserialize)]
 pub struct Profile {
@@ -15,7 +15,7 @@ pub struct Profile {
 }
 
 /// Get the username of the artist
-pub async fn fetch_profile(platform: &'static str, user_id: u64) -> crate::Result<Profile> {
+pub async fn fetch_profile(platform: &'static str, user_id: u64) -> anyhow::Result<Profile> {
     let profile = client()
         .get(format!("{API_BASE}/{platform}/user/{user_id}/profile"))
         .send()
@@ -30,16 +30,18 @@ pub async fn fetch_profile(platform: &'static str, user_id: u64) -> crate::Resul
 #[derive(Debug, Deserialize)]
 pub struct Post {
     #[serde_as(as = "DisplayFromStr")]
-    pub id: u64,
+    pub id: PostID,
     pub title: String,
 }
+
+pub type PostID = u64;
 
 pub async fn scrape_posts(
     platform: &'static str,
     user_id: u64,
     profile: Profile,
-    range: RangeInclusive<u64>,
-) -> crate::Result<Vec<Post>> {
+    range: RangeInclusive<PostID>,
+) -> anyhow::Result<Vec<Post>> {
     #[derive(Debug, Deserialize)]
     struct Payload {
         #[serde(rename = "results")]

@@ -12,3 +12,4 @@ serde_with = { workspace = true }
 derive_more = { workspace = true }
 async-stream = "0.3.6"
 futures = "0.3.31"
+thiserror = "2.0.12"
