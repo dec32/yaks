@@ -1,4 +1,7 @@
-use std::{ops::RangeInclusive, path::Path};
+use std::{
+    ops::RangeInclusive,
+    path::{Path, PathBuf},
+};
 
 use anyhow::anyhow;
 use clap::Parser;
@@ -32,7 +35,7 @@ impl TryFrom<RawArgs> for Args {
             cover,
             out,
             template,
-            workers,
+            jobs: workers,
         }: RawArgs,
     ) -> Result<Self, Self::Error> {
         let (start, end) = range
@@ -62,7 +65,15 @@ impl TryFrom<RawArgs> for Args {
                 split[index + 1].parse()?,
             )
         };
-        let out = Path::new(out.leak());
+        let out = out
+            .or_else(|| dirs_next::download_dir())
+            .ok_or(anyhow::anyhow!("Can not locate out path"))?;
+        let out = out
+            .to_str()
+            .ok_or(anyhow::anyhow!("Unrecognizable out path."))?
+            .to_string()
+            .leak();
+        let out = Path::new(out);
         let template = template.leak();
         let args = Args {
             platform,
@@ -95,14 +106,14 @@ struct RawArgs {
     cover: bool,
 
     /// Output directory for downloaded files.
-    #[arg(short, long, default_value = "/mnt/c/Users/Administrator/Downloads")]
-    out: String,
+    #[arg(short, long)]
+    out: Option<PathBuf>,
 
     /// Filename template for downloaded files.
-    #[arg(long, default_value = "{username}/{post_id}_{index}")]
+    #[arg(long, default_value = "{nickname}/{post_id}_{index}")]
     template: String,
 
-    /// Maximum amount of parallel downloading workers.
-    #[arg(short, long, default_value_t = 8)]
-    workers: u8,
+    /// Maximum amount of parallel jobs.
+    #[arg(short, long, default_value = "8")]
+    jobs: u8,
 }

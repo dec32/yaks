@@ -1,7 +1,6 @@
 use std::{collections::HashMap, result, time::Duration};
 
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
-use log::LevelFilter;
 use yaks_core::{Engine, Event};
 
 use crate::args::Args;
@@ -14,11 +13,6 @@ mod style;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
-    // logger
-    env_logger::Builder::from_default_env()
-        .filter_level(LevelFilter::Info)
-        .init();
-
     // args
     let Args {
         platform,

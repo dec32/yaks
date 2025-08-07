@@ -80,7 +80,10 @@ fn listen_errors(errors: Receiver<crate::Error>, events: Sender<crate::Result<Ev
     });
 }
 
-fn listen_files(files_rx: Receiver<Vec<File>>, events: Sender<crate::Result<Event>>) -> Receiver<File> {
+fn listen_files(
+    files_rx: Receiver<Vec<File>>,
+    events: Sender<crate::Result<Event>>,
+) -> Receiver<File> {
     let (tx, rx) = async_channel::unbounded();
     tokio::spawn(async move {
         while let Ok(files) = files_rx.recv().await {

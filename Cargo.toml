@@ -9,6 +9,7 @@ async-stream = "0.3.6"
 bytes = "1.10.1"
 clap = { version = "4.5.42", features = ["derive"] }
 derive_more = { version = "2", features = ["display", "deref"] }
+dirs-next = "2.0.0"
 env_logger = "0.11.8"
 futures = "0.3.31"
 indicatif = { version = "0.17", features = ["in_memory"] }

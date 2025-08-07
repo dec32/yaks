@@ -139,6 +139,7 @@ async fn browse(
         // todo use runtime formatting library
         let location = location
             .replace("{user_id}", &user_id.to_string())
+            .replace("{username}", &profile.username)
             .replace("{nickname}", &profile.nickname)
             .replace("{post_id}", &id.to_string())
             .replace("{index}", &index.to_string())

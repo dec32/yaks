@@ -10,9 +10,8 @@ name = "yaks"
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
-env_logger.workspace = true
+dirs-next.workspace = true
 indicatif.workspace = true
-log.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_with.workspace = true
