@@ -1,4 +1,4 @@
-use std::ops::RangeInclusive;
+use std::{ops::RangeInclusive, path::Path};
 
 use anyhow::anyhow;
 use clap::Parser;
@@ -11,7 +11,7 @@ pub struct Args {
     pub user_id: u64,
     pub range: RangeInclusive<PostID>,
     pub cover: bool,
-    pub out: &'static str,
+    pub out: &'static Path,
     pub template: &'static str,
     pub workers: u8,
 }
@@ -62,7 +62,7 @@ impl TryFrom<RawArgs> for Args {
                 split[index + 1].parse()?,
             )
         };
-        let out = out.leak();
+        let out = Path::new(out.leak());
         let template = template.leak();
         let args = Args {
             platform,

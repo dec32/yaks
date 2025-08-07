@@ -65,10 +65,10 @@ async fn work(jobs: Receiver<Job>, tx: Sender<(JobID, Prog)>, errors: Sender<cra
 fn download(job: Job) -> impl Stream<Item = anyhow::Result<Prog>> {
     try_stream! {
         // setting up the output file and the http response
-        let parent = job.out.parent().unwrap();
+        let parent = job.dest.parent().unwrap();
         let mut dest = {
             fs::create_dir_all(parent).await?;
-            File::create(&job.out).await?
+            File::create(&job.dest).await?
         };
         let mut resp = client()
             .get(job.url.as_ref())
@@ -87,8 +87,8 @@ fn download(job: Job) -> impl Stream<Item = anyhow::Result<Prog>> {
                     yield Prog::Chunk(chunk.len() as u64);
                 }
                 None => {
-                    let real_path = parent.join(job.filename.as_ref());
-                    fs::rename(&job.out, real_path).await?;
+                    let real_dest = parent.join(job.filename.as_ref());
+                    fs::rename(&job.dest, real_dest).await?;
                     break;
                 }
             };

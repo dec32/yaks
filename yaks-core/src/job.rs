@@ -21,7 +21,7 @@ pub struct Job(Arc<JobRef>);
 pub struct JobRef {
     pub filename: Box<str>,
     pub url: Box<str>,
-    pub out: Box<Path>,
+    pub dest: Box<Path>,
 }
 
 pub type JobID = usize;
@@ -39,7 +39,7 @@ pub fn create_jobs(
     user_id: UserID,
     profile: Profile,
     cover: bool,
-    out: &'static str,
+    out: &'static Path,
     template: &'static str,
     errors: Sender<crate::Error>,
 ) -> Receiver<Vec<Job>> {
@@ -83,7 +83,7 @@ async fn browse(
     user_id: UserID,
     profile: Profile,
     cover: bool,
-    out: &'static str,
+    out: &'static Path,
     template: &'static str,
 ) -> anyhow::Result<Vec<Job>> {
     #[derive(Debug, Deserialize)]
@@ -134,21 +134,21 @@ async fn browse(
             .replace("{title}", &title)
             .replace("{filename}", name.to_string_lossy().as_ref());
 
-        let mut out = PathBuf::from(out).join(&location);
-        if fs::try_exists(&out).await? {
+        let mut dest = out.join(&location);
+        if fs::try_exists(&dest).await? {
             continue;
         }
-        let filename = out
+        let filename = dest
             .file_name()
             .unwrap()
             .to_string_lossy()
             .into_owned()
             .into_boxed_str();
         // append .part to dest files for recovery
-        out.pop();
-        out.push(format!("{filename}.parts"));
-        let out = out.into_boxed_path();
-        let job = Job(Arc::new(JobRef { filename, url, out }));
+        dest.pop();
+        dest.push(format!("{filename}.parts"));
+        let dest = dest.into_boxed_path();
+        let job = Job(Arc::new(JobRef { filename, url, dest }));
         jobs.push(job);
     }
     Ok(jobs)

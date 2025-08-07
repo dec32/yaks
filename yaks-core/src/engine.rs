@@ -1,4 +1,4 @@
-use std::ops::RangeInclusive;
+use std::{ops::RangeInclusive, path::Path};
 
 use async_channel::{self, Receiver, Sender};
 
@@ -18,7 +18,7 @@ impl Engine {
         user_id: UserID,
         range: RangeInclusive<PostID>,
         cover: bool,
-        out: &'static str,
+        out: &'static Path,
         template: &'static str,
         workers: u8,
     ) -> Receiver<crate::Result<Event>> {
