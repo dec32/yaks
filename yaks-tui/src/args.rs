@@ -2,13 +2,13 @@ use std::{ops::RangeInclusive, path::Path};
 
 use anyhow::anyhow;
 use clap::Parser;
-use yaks_core::PostID;
+use yaks_core::{PostID, UserID};
 
 use crate::Result;
 
 pub struct Args {
     pub platform: &'static str,
-    pub user_id: u64,
+    pub user_id: UserID,
     pub range: RangeInclusive<PostID>,
     pub cover: bool,
     pub out: &'static Path,

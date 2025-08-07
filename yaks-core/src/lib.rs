@@ -11,6 +11,7 @@ mod worker;
 pub use engine::Engine;
 pub use job::{Job, JobID};
 pub use post::{Post, PostID, Profile};
+use ustr::Ustr;
 
 // consts
 pub(crate) const API_BASE: &str = "https://kemono.cr/api/v1";
@@ -26,7 +27,7 @@ pub(crate) fn client() -> &'static Client {
 
 // types
 pub type Result<T, E = crate::Error> = result::Result<T, E>;
-pub type UserID = u64;
+pub type UserID = Ustr;
 
 /// Event sent to the UI, by the engine, not the submodules.
 ///

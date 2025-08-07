@@ -76,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(event) => match event {
                 Event::Profile(_profile) => {
                     fetch_profile.set_style(style::clear());
-                    fetch_profile.finish_with_message("Profile feteched.");
+                    fetch_profile.finish_with_message("Profile fetched.");
                     scrape_posts = mp.add(scrape_posts);
                 }
                 Event::Posts(posts) => {

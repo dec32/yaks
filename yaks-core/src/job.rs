@@ -7,6 +7,7 @@ use async_channel::{self, Receiver, Sender};
 use derive_more::Deref;
 use serde::Deserialize;
 use tokio::fs;
+use ustr::Ustr;
 
 use crate::{
     API_BASE, BRWOSE_INTERVAL, POST_BROWSERS, UserID, client,
@@ -95,7 +96,7 @@ async fn browse(
     struct Preview {
         name: String,
         path: String,
-        server: String,
+        server: Ustr,
     }
     if template.starts_with("/") {
         panic!("illegal template {template}");
