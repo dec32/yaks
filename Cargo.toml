@@ -6,6 +6,7 @@ members = ["yaks-core", "yaks-tui"]
 anyhow = "1.0.98"
 async-channel = "2.5.0"
 async-stream = "0.3.6"
+bytes = "1.10.1"
 clap = { version = "4.5.42", features = ["derive"] }
 derive_more = { version = "2", features = ["display", "deref"] }
 env_logger = "0.11.8"

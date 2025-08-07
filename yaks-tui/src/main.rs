@@ -63,7 +63,6 @@ async fn main() -> anyhow::Result<()> {
     let mut speed = mp.add(ProgressBar::new(0));
     speed.set_style(style::speed());
 
-
     mp.remove(&scrape_posts);
     mp.remove(&create_jobs);
     mp.remove(&download);

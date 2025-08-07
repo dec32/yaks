@@ -88,30 +88,40 @@ async fn browse(
     template: &'static str,
 ) -> anyhow::Result<Vec<Job>> {
     #[derive(Debug, Deserialize)]
-    struct Payload {
-        previews: Vec<Preview>,
+    #[serde(bound = "'de: 'body")]
+    struct Payload<'body> {
+        previews: Vec<Preview<'body>>,
     }
 
     #[derive(Debug, Deserialize)]
-    struct Preview {
-        name: String,
-        path: String,
+    struct Preview<'body> {
+        #[serde(rename = "name")]
+        filename: &'body str,
+        path: &'body str,
         server: Ustr,
     }
     if template.starts_with("/") {
         panic!("illegal template {template}");
     }
     let url = format!("{API_BASE}/{platform}/user/{user_id}/post/{id}");
-    let payload = client()
+    let bytes = client()
         .get(&url)
         .send()
         .await?
         .error_for_status()?
-        .json::<Payload>()
+        .bytes()
         .await?;
+    let payload = serde_json::from_slice::<Payload>(&bytes)?;
 
     let mut jobs = Vec::new();
-    for (index, Preview { name, path, server }) in payload
+    for (
+        index,
+        Preview {
+            filename: name,
+            path,
+            server,
+        },
+    ) in payload
         .previews
         .iter()
         .enumerate()
@@ -149,7 +159,11 @@ async fn browse(
         dest.pop();
         dest.push(format!("{filename}.parts"));
         let dest = dest.into_boxed_path();
-        let job = Job(Arc::new(JobRef { filename, url, dest }));
+        let job = Job(Arc::new(JobRef {
+            filename,
+            url,
+            dest,
+        }));
         jobs.push(job);
     }
     Ok(jobs)

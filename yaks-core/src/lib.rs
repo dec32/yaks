@@ -16,7 +16,8 @@ use ustr::Ustr;
 // consts
 pub(crate) const API_BASE: &str = "https://kemono.cr/api/v1";
 pub(crate) const TIMEOUT: Duration = Duration::from_secs(30);
-pub(crate) const BRWOSE_INTERVAL: Duration = Duration::from_millis(1000);
+pub(crate) const SCRAPE_INTERVAL: Duration = Duration::from_millis(500);
+pub(crate) const BRWOSE_INTERVAL: Duration = Duration::from_millis(500);
 pub(crate) const POST_BROWSERS: usize = 5;
 
 // static

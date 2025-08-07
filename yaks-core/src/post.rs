@@ -4,7 +4,7 @@ use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
 use ustr::Ustr;
 
-use crate::{API_BASE, UserID, client};
+use crate::{API_BASE, SCRAPE_INTERVAL, UserID, client};
 
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub struct Profile {
@@ -79,5 +79,6 @@ pub async fn scrape_posts(
         if offset > count {
             break Ok(res);
         }
+        tokio::time::sleep(SCRAPE_INTERVAL).await;
     }
 }
