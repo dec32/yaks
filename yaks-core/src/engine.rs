@@ -3,7 +3,7 @@ use std::{ops::RangeInclusive, path::Path};
 use async_channel::{self, Receiver, Sender};
 
 use crate::{
-    Event, Job, JobID, UserID, job,
+    Event, File, FileID, UserID, file,
     post::{self, PostID},
     worker::{self, Prog},
 };
@@ -52,8 +52,8 @@ impl Engine {
                 }
             };
             events.send(Ok(Event::PostsExhausted)).await.unwrap();
-            // create jobs. each job will have two copies. one for download and one for UI.
-            let jobs_rx = job::create_jobs(
+            // collect files. each file will have two copies. one for download and one for UI.
+            let files_rx = file::collect_files(
                 posts,
                 platform,
                 user_id,
@@ -63,9 +63,9 @@ impl Engine {
                 template,
                 error_tx.clone(),
             );
-            let jobs = listen_jobs(jobs_rx, events.clone());
+            let files = listen_files(files_rx, events.clone());
             // download
-            let progress = worker::start_workers(workers, jobs.clone(), error_tx);
+            let progress = worker::start_workers(workers, files.clone(), error_tx);
             listen_prog(progress, events);
         });
         event_rx
@@ -80,25 +80,25 @@ fn listen_errors(errors: Receiver<crate::Error>, events: Sender<crate::Result<Ev
     });
 }
 
-fn listen_jobs(jobs_rx: Receiver<Vec<Job>>, events: Sender<crate::Result<Event>>) -> Receiver<Job> {
+fn listen_files(files_rx: Receiver<Vec<File>>, events: Sender<crate::Result<Event>>) -> Receiver<File> {
     let (tx, rx) = async_channel::unbounded();
     tokio::spawn(async move {
-        while let Ok(jobs) = jobs_rx.recv().await {
-            for job in jobs.iter().cloned() {
-                tx.send(job).await.unwrap();
+        while let Ok(files) = files_rx.recv().await {
+            for file in files.iter().cloned() {
+                tx.send(file).await.unwrap();
             }
-            events.send(Ok(Event::Jobs(jobs))).await.unwrap();
+            events.send(Ok(Event::Files(files))).await.unwrap();
         }
-        events.send(Ok(Event::JobExhausted)).await.unwrap();
+        events.send(Ok(Event::FilesExhausted)).await.unwrap();
     });
     rx
 }
 
-fn listen_prog(prog: Receiver<(JobID, Prog)>, events: Sender<crate::Result<Event>>) {
+fn listen_prog(prog: Receiver<(FileID, Prog)>, events: Sender<crate::Result<Event>>) {
     tokio::spawn(async move {
         while let Ok((id, prog)) = prog.recv().await {
             let event = match prog {
-                Prog::Enque => Event::Enqueue(id),
+                Prog::Enqueue => Event::Enqueue(id),
                 Prog::Init(size) => Event::Init(id, size),
                 Prog::Chunk(size) => Event::Chunk(id, size),
                 Prog::Fin => Event::Fin(id),

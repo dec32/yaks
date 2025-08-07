@@ -31,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
     } = Args::from_env()?;
 
     // tui
-    let mut jobs = HashMap::new();
+    let mut files = HashMap::new();
     let mut bars = HashMap::new();
     let mp = MultiProgress::new();
     mp.set_draw_target(ProgressDrawTarget::hidden());
@@ -51,10 +51,10 @@ async fn main() -> anyhow::Result<()> {
     scrape_posts.set_message("Scraping posts...");
     scrape_posts.enable_steady_tick(Duration::from_millis(100));
 
-    let mut create_jobs = mp.add(ProgressBar::new(0));
-    create_jobs.set_style(style::create_jobs());
-    create_jobs.set_message("Collecting files...");
-    create_jobs.enable_steady_tick(Duration::from_millis(100));
+    let mut collect_files = mp.add(ProgressBar::new(0));
+    collect_files.set_style(style::collect_files());
+    collect_files.set_message("Collecting files...");
+    collect_files.enable_steady_tick(Duration::from_millis(100));
 
     let mut download = mp.add(ProgressBar::new(0));
     download.set_style(style::download());
@@ -64,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
     speed.set_style(style::speed());
 
     mp.remove(&scrape_posts);
-    mp.remove(&create_jobs);
+    mp.remove(&collect_files);
     mp.remove(&download);
     mp.remove(&speed);
     mp.set_draw_target(ProgressDrawTarget::stderr());
@@ -80,31 +80,31 @@ async fn main() -> anyhow::Result<()> {
                 }
                 Event::Posts(posts) => {
                     scrape_posts.inc(posts as u64);
-                    create_jobs.inc_length(posts as u64);
+                    collect_files.inc_length(posts as u64);
                 }
                 Event::PostsExhausted => {
                     scrape_posts.set_style(style::clear());
                     scrape_posts.finish_with_message("Posts scraped.");
-                    create_jobs = mp.add(create_jobs);
+                    collect_files = mp.add(collect_files);
                     download = mp.add(download);
                     speed = mp.add(speed);
                 }
-                Event::Jobs(new_jobs) => {
-                    create_jobs.inc(1);
-                    download.inc_length(new_jobs.len() as u64);
-                    for job in new_jobs {
-                        jobs.insert(job.id(), job);
+                Event::Files(new_files) => {
+                    collect_files.inc(1);
+                    download.inc_length(new_files.len() as u64);
+                    for file in new_files {
+                        files.insert(file.id(), file);
                     }
                 }
-                Event::JobExhausted => {
-                    mp.remove(&create_jobs);
+                Event::FilesExhausted => {
+                    mp.remove(&collect_files);
                 }
                 Event::Enqueue(id) => {
                     download.set_message("Downloading...");
                     let bar = mp.add(ProgressBar::new(0));
                     bar.set_style(style::enqueued());
                     bar.set_length(u64::MAX);
-                    bar.set_message(format!("{}", jobs.get(&id).unwrap().filename));
+                    bar.set_message(format!("{}", files.get(&id).unwrap().filename));
                     bar.enable_steady_tick(Duration::from_millis(200));
                     let bar = mp.insert_before(&speed, bar);
                     bars.insert(id, bar);
@@ -145,8 +145,8 @@ async fn main() -> anyhow::Result<()> {
                         break;
                     }
                     Error::Browse(id, e) => {
-                        create_jobs.set_style(style::error());
-                        create_jobs
+                        collect_files.set_style(style::error());
+                        collect_files
                             .set_message(format!("Failed to collect files from post {id} ({e})"));
                     }
                     Error::Download(id, _e) => {

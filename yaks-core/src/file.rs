@@ -16,25 +16,25 @@ use crate::{
 
 /// correspond to one single file in a post
 #[derive(Debug, Clone, Deref)]
-pub struct Job(Arc<JobRef>);
+pub struct File(Arc<FileRef>);
 
 #[derive(Debug)]
-pub struct JobRef {
+pub struct FileRef {
     pub filename: Box<str>,
     pub url: Box<str>,
     pub dest: Box<Path>,
 }
 
-pub type JobID = usize;
+pub type FileID = usize;
 
-impl Job {
+impl File {
     #[inline(always)]
-    pub fn id(&self) -> JobID {
-        self.0.as_ref() as *const JobRef as *const () as usize
+    pub fn id(&self) -> FileID {
+        self.0.as_ref() as *const FileRef as *const () as usize
     }
 }
 
-pub fn create_jobs(
+pub fn collect_files(
     posts: Vec<Post>,
     platform: &'static str,
     user_id: UserID,
@@ -43,7 +43,7 @@ pub fn create_jobs(
     out: &'static Path,
     template: &'static str,
     errors: Sender<crate::Error>,
-) -> Receiver<Vec<Job>> {
+) -> Receiver<Vec<File>> {
     let (tx, rx) = async_channel::unbounded();
     // convert vec into chann (ok this is very silly)
     let (post_tx, post_rx) = async_channel::bounded(POST_BROWSERS);
@@ -63,8 +63,8 @@ pub fn create_jobs(
             while let Ok(post) = posts.recv().await {
                 let id = post.id;
                 match browse(post, platform, user_id, profile, cover, out, template).await {
-                    Ok(jobs) => {
-                        tx.send(jobs).await.unwrap();
+                    Ok(files) => {
+                        tx.send(files).await.unwrap();
                     }
                     Err(e) => {
                         let e = crate::Error::Browse(id, e);
@@ -86,7 +86,7 @@ async fn browse(
     cover: bool,
     out: &'static Path,
     template: &'static str,
-) -> anyhow::Result<Vec<Job>> {
+) -> anyhow::Result<Vec<File>> {
     #[derive(Debug, Deserialize)]
     #[serde(bound = "'de: 'body")]
     struct Payload<'body> {
@@ -113,7 +113,7 @@ async fn browse(
         .await?;
     let payload = serde_json::from_slice::<Payload>(&bytes)?;
 
-    let mut jobs = Vec::new();
+    let mut files = Vec::new();
     for (
         index,
         Preview {
@@ -159,12 +159,12 @@ async fn browse(
         dest.pop();
         dest.push(format!("{filename}.parts"));
         let dest = dest.into_boxed_path();
-        let job = Job(Arc::new(JobRef {
+        let file = File(Arc::new(FileRef {
             filename,
             url,
             dest,
         }));
-        jobs.push(job);
+        files.push(file);
     }
-    Ok(jobs)
+    Ok(files)
 }

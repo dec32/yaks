@@ -46,7 +46,7 @@ progress_style! {
     "◴◷◶◵ "
 }
 progress_style! {
-    create_jobs,
+    collect_files,
     "{spinner:.blue} [{pos}/{len}] {msg}",
     "◴◷◶◵ "
 }

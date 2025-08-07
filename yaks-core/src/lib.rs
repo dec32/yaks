@@ -3,13 +3,13 @@ use std::{result, sync::OnceLock, time::Duration};
 use reqwest::{Client, ClientBuilder};
 
 pub mod engine;
-mod job;
+mod file;
 mod post;
 mod worker;
 
 // re-exports
 pub use engine::Engine;
-pub use job::{Job, JobID};
+pub use file::{File, FileID};
 pub use post::{Post, PostID, Profile};
 use ustr::Ustr;
 
@@ -32,7 +32,7 @@ pub type UserID = Ustr;
 
 /// Event sent to the UI, by the engine, not the submodules.
 ///
-/// Submodules should only sent data related to its job and
+/// Submodules should only sent data related to its file and
 /// let the engine decide how to represent the data as events.
 #[derive(Debug)]
 pub enum Event {
@@ -42,21 +42,21 @@ pub enum Event {
     Posts(usize),
     /// All pages are handled. No more post to offer.
     PostsExhausted,
-    /// Jobs from a post are created.
-    Jobs(Vec<Job>),
-    /// All posts are browsed. No more jobs to create.
-    JobExhausted,
-    /// A job is added to the download queue.
-    Enqueue(JobID),
-    /// A job has setup its connection with the server.
-    /// The file size (in bytes) is also offered.
-    Init(JobID, u64),
-    /// A job has received a chunk from the server.
+    /// Files from a post are collected.
+    Files(Vec<File>),
+    /// All posts are browsed. No more file to collect.
+    FilesExhausted,
+    /// A file is added to the download queue.
+    Enqueue(FileID),
+    /// A file has setup its connection with the server.
+    /// The total size (in bytes) is also offered.
+    Init(FileID, u64),
+    /// A file has received a chunk from the server.
     /// The chunk size (in bytes) is also offered.
-    Chunk(JobID, u64),
-    /// A job has been fully downloaded.
-    Fin(JobID),
-    /// All jobs are downloaded.
+    Chunk(FileID, u64),
+    /// A file has been fully downloaded.
+    Fin(FileID),
+    /// All files are downloaded.
     Clear,
 }
 
@@ -74,5 +74,5 @@ pub enum Error {
     #[error("{1}")]
     Browse(PostID, anyhow::Error),
     #[error("{1}")]
-    Download(JobID, anyhow::Error),
+    Download(FileID, anyhow::Error),
 }

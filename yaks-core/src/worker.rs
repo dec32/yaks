@@ -2,51 +2,51 @@ use async_channel::{Receiver, Sender};
 use async_stream::try_stream;
 use futures::{Stream, StreamExt};
 use tokio::{
-    fs::{self, File},
+    fs::{self},
     io::AsyncWriteExt,
     pin,
 };
 
-use crate::{JobID, client, job::Job};
+use crate::{FileID, client, file::File};
 
 #[derive(Debug)]
 pub enum Prog {
-    Enque,
+    Enqueue,
     Init(u64),
     Chunk(u64),
     Fin,
 }
 
 /// Start a fixed number of workers.
-/// The workers will drain the jobs from the receiver
+/// The workers will drain the files from the receiver
 /// and report the progress in to the `progress` sender
 pub fn start_workers(
     workers: u8,
-    jobs: Receiver<Job>,
+    files: Receiver<File>,
     errors: Sender<crate::Error>,
-) -> Receiver<(JobID, Prog)> {
+) -> Receiver<(FileID, Prog)> {
     let (tx, rx) = async_channel::unbounded();
     for _ in 0..workers {
-        let jobs = jobs.clone();
+        let files = files.clone();
         let progress = tx.clone();
         let errors = errors.clone();
         tokio::spawn(async move {
-            work(jobs, progress, errors).await;
+            work(files, progress, errors).await;
         });
     }
     rx
 }
 
-/// download the given jobs subsquentially using streams.
+/// download the given files subsquentially using streams.
 /// the function drains the streams and:
 /// 1. report progress in to the sender
 /// 2. capture yielded errors and send them... somewhere?
-async fn work(jobs: Receiver<Job>, tx: Sender<(JobID, Prog)>, errors: Sender<crate::Error>) {
-    while let Ok(job) = jobs.recv().await {
-        let id = job.id();
-        let stream = download(job.clone());
+async fn work(files: Receiver<File>, tx: Sender<(FileID, Prog)>, errors: Sender<crate::Error>) {
+    while let Ok(file) = files.recv().await {
+        let id = file.id();
+        let stream = download(file.clone());
         pin!(stream);
-        tx.send((id, Prog::Enque)).await.unwrap();
+        tx.send((id, Prog::Enqueue)).await.unwrap();
         while let Some(progress) = stream.next().await {
             match progress {
                 // todo: too much clone here
@@ -62,16 +62,16 @@ async fn work(jobs: Receiver<Job>, tx: Sender<(JobID, Prog)>, errors: Sender<cra
 }
 
 /// return a stream of progress (and errors some time)
-fn download(job: Job) -> impl Stream<Item = anyhow::Result<Prog>> {
+fn download(file: File) -> impl Stream<Item = anyhow::Result<Prog>> {
     try_stream! {
         // setting up the output file and the http response
-        let parent = job.dest.parent().unwrap();
+        let parent = file.dest.parent().unwrap();
         let mut dest = {
             fs::create_dir_all(parent).await?;
-            File::create(&job.dest).await?
+            fs::File::create(&file.dest).await?
         };
         let mut resp = client()
-            .get(job.url.as_ref())
+            .get(file.url.as_ref())
             .send()
             .await?
             .error_for_status()?;
@@ -87,8 +87,8 @@ fn download(job: Job) -> impl Stream<Item = anyhow::Result<Prog>> {
                     yield Prog::Chunk(chunk.len() as u64);
                 }
                 None => {
-                    let real_dest = parent.join(job.filename.as_ref());
-                    fs::rename(&job.dest, real_dest).await?;
+                    let real_dest = parent.join(file.filename.as_ref());
+                    fs::rename(&file.dest, real_dest).await?;
                     break;
                 }
             };
