@@ -7,7 +7,7 @@ use tokio::{
     pin,
 };
 
-use crate::{client, job::Job, JobID};
+use crate::{JobID, client, job::Job};
 
 #[derive(Debug)]
 pub enum Prog {

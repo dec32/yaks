@@ -1,134 +1,110 @@
-use std::collections::{HashMap, VecDeque};
+use std::ops::RangeInclusive;
 
-use tokio::{
-    sync::mpsc::{self, Receiver, Sender},
-    task::JoinSet,
-};
+use async_channel::{self, Receiver, Sender};
 
 use crate::{
-    Result,
-    event::Event,
-    post::Post,
-    range::Range,
-    task::{Task, TaskID},
+    Event, Job, JobID, UserID, job,
+    post::{self, PostID},
+    worker::{self, Prog},
 };
 
-pub struct Engine {
-    tasks: VecDeque<Task>,
-    failures: VecDeque<Task>,
-    jobs: HashMap<TaskID, Task>,
-}
+#[derive(Default)]
+pub struct Engine {}
 
 impl Engine {
-    pub fn new() -> Self {
-        Self {
-            tasks: VecDeque::new(),
-            jobs: HashMap::new(),
-            failures: VecDeque::new(),
-        }
-    }
-
-    pub async fn start(
-        mut self,
+    pub fn start(
+        self,
         platform: &'static str,
-        user_id: u64,
-        range: Range,
+        user_id: UserID,
+        range: RangeInclusive<PostID>,
         cover: bool,
         out: &'static str,
         template: &'static str,
-        jobs: usize,
-    ) -> Result<Receiver<Event>> {
-        // chann for UI
-        let (tx, rx) = mpsc::channel(128);
+        workers: u8,
+    ) -> Receiver<crate::Result<Event>> {
+        // event chann (for TUI/GUI)
+        let (events, event_rx) = async_channel::unbounded();
+        // chann for Error
+        let (error_tx, errors) = async_channel::unbounded();
+        listen_errors(errors, events.clone());
+
         tokio::spawn(async move {
-            // get username
-            let username = match Post::profile(platform, user_id).await {
-                Ok(username) => username,
+            // fetching profile
+            let profile = match post::fetch_profile(platform, user_id).await {
+                Ok(profile) => profile,
                 Err(e) => {
-                    tx.send(Event::NoProfile(e)).await.unwrap();
+                    println!("Error fetching profile {e}");
+                    error_tx.send(crate::Error::Profile(e)).await.unwrap();
                     return;
                 }
             };
-            tx.send(Event::Profile).await.unwrap();
-            // scrape posts
-            let posts = match Post::scrape(platform, user_id, range, tx.clone()).await {
-                Ok(posts) => posts,
-                Err(err) => {
-                    tx.send(Event::NoPosts(err)).await.unwrap();
+            events.send(Ok(Event::Profile(profile))).await.unwrap();
+            // scrape all posts
+            let posts = match post::scrape_posts(platform, user_id, range).await {
+                Ok(posts) => {
+                    events.send(Ok(Event::Posts(posts.len()))).await.unwrap();
+                    posts
+                }
+                Err(e) => {
+                    println!("Error creating posts {e}");
+                    error_tx.send(crate::Error::Scrape(e)).await.unwrap();
                     return;
                 }
             };
-            // convert posts into (pending) tasks
-            self.tasks = Task::create(
+            events.send(Ok(Event::PostsExhausted)).await.unwrap();
+            // create jobs. each job will have two copies. one for download and one for UI.
+            let jobs_rx = job::create_jobs(
                 posts,
                 platform,
                 user_id,
-                username,
+                profile,
                 cover,
                 out,
                 template,
-                tx.clone(),
-            )
-            .await;
+                error_tx.clone(),
+            );
+            let jobs = listen_jobs(jobs_rx, events.clone());
             // download
-            self.download(jobs, tx).await;
+            let progress = worker::start_workers(workers, jobs.clone(), error_tx);
+            listen_prog(progress, events);
         });
-        Ok(rx)
+        event_rx
     }
+}
 
-    async fn download(mut self, jobs: usize, ui_tx: Sender<Event>) {
-        let (tx, mut rx) = mpsc::channel(128);
-        // spawning jobs according to the set parallelism
-        let mut set = JoinSet::new();
-        while self.jobs.len() < jobs {
-            if self.run_more(tx.clone(), &mut set).await {
-                continue;
-            }
-            break;
+fn listen_errors(errors: Receiver<crate::Error>, events: Sender<crate::Result<Event>>) {
+    tokio::spawn(async move {
+        while let Ok(e) = errors.recv().await {
+            events.send(Err(e)).await.unwrap();
         }
-        // since there's a `tx` above for cloning, `while let` never breaks.
-        // thus the number of jobs running becomes the termination condition
-        // jobs will run until Event::Finished is processed by the loop below
-        while !set.is_empty() {
-            tokio::select! {
-                // mandatory. the finished jobs won't leave the set if not joined
-                _ = set.join_next() => (),
-                // the real loop body
-                Some(event) = rx.recv() => {
-                    match &event {
-                        Event::Enqueue(..) => (),
-                        Event::Established(..) => (),
-                        Event::Updated(..) => (),
-                        Event::Failed(id, _err) => {
-                            // save failed tasks for later retry (not yet implemented)
-                            let task = self.jobs.remove(id).unwrap();
-                            self.failures.push_back(task);
-                        }
-                        Event::Finished(id) => {
-                            self.jobs.remove(id);
-                        }
-                        _ => unreachable!()
-                    };
-                    if matches!(&event, Event::Failed(..) | Event::Finished(..)) {
-                        self.run_more(tx.clone(), &mut set).await;
-                    }
-                    ui_tx.send(event).await.unwrap();
-                }
-            }
-        }
-        assert_eq!(tx.strong_count(), 1);
-        ui_tx.send(Event::Clear).await.unwrap();
-    }
+    });
+}
 
-    async fn run_more(&mut self, tx: Sender<Event>, set: &mut JoinSet<()>) -> bool {
-        match self.tasks.pop_front() {
-            Some(task) => {
-                tx.send(Event::Enqueue(task.clone())).await.unwrap();
-                set.spawn(task.clone().start(tx));
-                self.jobs.insert(task.id(), task);
-                true
+fn listen_jobs(jobs_rx: Receiver<Vec<Job>>, events: Sender<crate::Result<Event>>) -> Receiver<Job> {
+    let (tx, rx) = async_channel::unbounded();
+    tokio::spawn(async move {
+        while let Ok(jobs) = jobs_rx.recv().await {
+            for job in jobs.iter().cloned() {
+                tx.send(job).await.unwrap();
             }
-            None => false,
+            events.send(Ok(Event::Jobs(jobs))).await.unwrap();
         }
-    }
+        events.send(Ok(Event::JobExhausted)).await.unwrap();
+    });
+    rx
+}
+
+fn listen_prog(prog: Receiver<(JobID, Prog)>, events: Sender<crate::Result<Event>>) {
+    tokio::spawn(async move {
+        while let Ok((id, prog)) = prog.recv().await {
+            let event = match prog {
+                Prog::Enque => Event::Enqueue(id),
+                Prog::Init(size) => Event::Init(id, size),
+                Prog::Chunk(size) => Event::Chunk(id, size),
+                Prog::Fin => Event::Fin(id),
+            };
+            events.send(Ok(event)).await.unwrap();
+        }
+        events.send(Ok(Event::Clear)).await.unwrap();
+    });
 }

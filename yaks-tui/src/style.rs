@@ -38,7 +38,7 @@ macro_rules! progress_style {
 progress_style! {
     fetch_profile,
     "{spinner:.blue} {msg}",
-    "◴◷◶◵ "
+    "/-\\| "
 }
 progress_style! {
     scrape_posts,
@@ -52,7 +52,13 @@ progress_style! {
 }
 progress_style! {
     download,
-    "{spinner:.blue} [{pos}/{len}] {msg}"
+    "{spinner:.blue} [{pos}/{len}] {msg}",
+    "◴◷◶◵ "
+}
+progress_style! {
+    clear,
+    "{spinner:.green} [{pos}/{len}] {msg}",
+    "✓✓"
 }
 progress_style! {
     error,

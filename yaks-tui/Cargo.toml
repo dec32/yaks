@@ -8,14 +8,13 @@ path = "src/main.rs"
 name = "yaks"
 
 [dependencies]
-yaks-postcore = { path = "../yaks-postcore" }
-
 anyhow.workspace = true
 clap.workspace = true
+env_logger.workspace = true
+indicatif.workspace = true
+log.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_with.workspace = true
 tokio.workspace = true
-indicatif.workspace = true
-env_logger.workspace = true
-log.workspace = true
+yaks-core = { path = "../yaks-core" }

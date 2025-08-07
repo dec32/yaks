@@ -2,7 +2,7 @@ use std::ops::RangeInclusive;
 
 use anyhow::anyhow;
 use clap::Parser;
-use yaks_postcore::PostID;
+use yaks_core::PostID;
 
 use crate::Result;
 
@@ -37,7 +37,7 @@ impl TryFrom<RawArgs> for Args {
     ) -> Result<Self, Self::Error> {
         let (start, end) = range
             .map(|s| s.leak().split_once("~"))
-            .map(|o|o.ok_or(anyhow::anyhow!("Ranges are split by ~")))
+            .map(|o| o.ok_or(anyhow::anyhow!("Ranges are split by ~")))
             .unwrap_or(Ok(("", "")))?;
 
         let start = if start.is_empty() { 0 } else { start.parse()? };

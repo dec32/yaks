@@ -3,9 +3,9 @@ use std::{
     sync::Arc,
 };
 
+use async_channel::{self, Receiver, Sender};
 use derive_more::Deref;
 use serde::Deserialize;
-use async_channel::{self, Receiver, Sender};
 use tokio::fs;
 
 use crate::{
