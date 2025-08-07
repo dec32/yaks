@@ -34,15 +34,15 @@ macro_rules! progress_style {
     };
 }
 
-// For the top banners. They don't have a visible bar
+// for banners
 progress_style! {
     fetch_profile,
     "{spinner:.blue} {msg}",
-    "/-\\| "
+    "?¿ "
 }
 progress_style! {
     scrape_posts,
-    "{spinner:.blue} [{pos}] {msg}",
+    "{spinner:.blue} {msg}",
     "◴◷◶◵ "
 }
 progress_style! {
@@ -57,7 +57,7 @@ progress_style! {
 }
 progress_style! {
     clear,
-    "{spinner:.green} [{pos}/{len}] {msg}",
+    "{spinner:.green} {msg}",
     "✓✓"
 }
 progress_style! {
@@ -73,10 +73,15 @@ progress_style! {
 }
 progress_style! {
     running,
-    "{spinner:.green} {msg:<20} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})"
+    "{spinner:.blue} {msg:<20} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})"
 }
 progress_style! {
     failed,
     "{spinner:.red} {msg:<20} [{elapsed_precise}] [{wide_bar:.red/blue}] {bytes}/{total_bytes}",
     "!!"
+}
+// for speed
+progress_style! {
+    speed,
+    "({bytes_per_sec})"
 }
