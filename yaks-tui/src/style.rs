@@ -34,14 +34,19 @@ macro_rules! progress_style {
     };
 }
 
-// for the top two indicators
+// For the top banners. They don't have a visible bar
 progress_style! {
-    profile,
+    fetch_profile,
     "{spinner:.blue} {msg}",
     "◴◷◶◵ "
 }
 progress_style! {
-    scrape,
+    scrape_posts,
+    "{spinner:.blue} [{pos}] {msg}",
+    "◴◷◶◵ "
+}
+progress_style! {
+    create_jobs,
     "{spinner:.blue} [{pos}/{len}] {msg}",
     "◴◷◶◵ "
 }

@@ -1,27 +1,29 @@
+use std::ops::RangeInclusive;
+
 use anyhow::anyhow;
 use clap::Parser;
-use yaks_core::range::Range;
+use yaks_postcore::PostID;
 
 use crate::Result;
 
 pub struct Args {
     pub platform: &'static str,
     pub user_id: u64,
-    pub range: Range,
+    pub range: RangeInclusive<PostID>,
     pub cover: bool,
     pub out: &'static str,
     pub template: &'static str,
-    pub jobs: usize,
+    pub workers: u8,
 }
 
 impl Args {
-    pub fn from_env() -> Result<Self> {
+    pub fn from_env() -> anyhow::Result<Self> {
         RawArgs::parse().try_into()
     }
 }
 
 impl TryFrom<RawArgs> for Args {
-    type Error = crate::Error;
+    type Error = anyhow::Error;
 
     fn try_from(
         RawArgs {
@@ -30,10 +32,21 @@ impl TryFrom<RawArgs> for Args {
             cover,
             out,
             template,
-            jobs,
+            workers,
         }: RawArgs,
-    ) -> std::result::Result<Self, Self::Error> {
-        let range = range.unwrap_or("~".into()).parse()?;
+    ) -> Result<Self, Self::Error> {
+        let (start, end) = range
+            .map(|s| s.leak().split_once("~"))
+            .map(|o|o.ok_or(anyhow::anyhow!("Ranges are split by ~")))
+            .unwrap_or(Ok(("", "")))?;
+
+        let start = if start.is_empty() { 0 } else { start.parse()? };
+        let end = if end.is_empty() {
+            PostID::MAX
+        } else {
+            end.parse()?
+        };
+        let range = RangeInclusive::new(start, end);
         let split = link.split("/").collect::<Vec<_>>();
         let (platform, user_id) = if split.len() == 2 {
             (split[0].to_string().leak(), split[1].parse()?)
@@ -58,7 +71,7 @@ impl TryFrom<RawArgs> for Args {
             cover,
             out,
             template,
-            jobs,
+            workers,
         };
         Ok(args)
     }
@@ -89,7 +102,7 @@ struct RawArgs {
     #[arg(long, default_value = "{username}/{post_id}_{index}")]
     template: String,
 
-    /// Maximum amount of parallel downloading tasks.
+    /// Maximum amount of parallel downloading workers.
     #[arg(short, long, default_value_t = 8)]
-    jobs: usize,
+    workers: u8,
 }
