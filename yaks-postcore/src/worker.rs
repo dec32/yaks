@@ -1,19 +1,17 @@
+use async_channel::{Receiver, Sender};
 use async_stream::try_stream;
 use futures::{Stream, StreamExt};
-use async_channel::{Receiver, Sender};
 use tokio::{
     fs::{self, File},
     io::AsyncWriteExt,
     pin,
 };
 
-use crate::{
-    client,
-    job::{Job, JobID},
-};
+use crate::{client, job::Job, JobID};
 
 #[derive(Debug)]
 pub enum Prog {
+    Enque,
     Init(u64),
     Chunk(u64),
     Fin,
@@ -43,20 +41,18 @@ pub fn start_workers(
 /// the function drains the streams and:
 /// 1. report progress in to the sender
 /// 2. capture yielded errors and send them... somewhere?
-async fn work(
-    jobs: Receiver<Job>,
-    tx: Sender<(JobID, Prog)>,
-    errors: Sender<crate::Error>,
-) {
+async fn work(jobs: Receiver<Job>, tx: Sender<(JobID, Prog)>, errors: Sender<crate::Error>) {
     while let Ok(job) = jobs.recv().await {
         let id = job.id();
         let stream = download(job.clone());
         pin!(stream);
+        tx.send((id, Prog::Enque)).await.unwrap();
         while let Some(progress) = stream.next().await {
             match progress {
+                // todo: too much clone here
                 Ok(progress) => tx.send((id, progress)).await.unwrap(),
                 Err(e) => {
-                    let e = crate::Error::Download(job, e);
+                    let e = crate::Error::Download(id, e);
                     errors.send(e).await.unwrap();
                     break;
                 }
@@ -84,13 +80,11 @@ fn download(job: Job) -> impl Stream<Item = anyhow::Result<Prog>> {
             .ok_or(anyhow::anyhow!("content-length is missing"))?;
         yield Prog::Init(total);
         // download by chunks
-        let mut cur = 0;
         loop {
             match resp.chunk().await? {
                 Some(chunk) => {
                     dest.write_all(&chunk).await?;
-                    cur += chunk.len() as u64;
-                    yield Prog::Chunk(cur);
+                    yield Prog::Chunk(chunk.len() as u64);
                 }
                 None => {
                     let real_path = parent.join(job.filename.as_ref());

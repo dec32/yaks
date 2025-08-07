@@ -42,7 +42,7 @@ pub fn create_jobs(
     out: &'static str,
     template: &'static str,
     errors: Sender<crate::Error>,
-) -> Receiver<Job> {
+) -> Receiver<Vec<Job>> {
     let (tx, rx) = async_channel::unbounded();
     // convert vec into chann (ok this is very silly)
     let (post_tx, post_rx) = async_channel::bounded(POST_BROWSERS);
@@ -63,13 +63,11 @@ pub fn create_jobs(
                 let id = post.id;
                 match browse(post, platform, user_id, profile, cover, out, template).await {
                     Ok(jobs) => {
-                        for job in jobs {
-                            tx.send(job).await.unwrap();
-                        }
+                        tx.send(jobs).await.unwrap();
                     }
                     Err(e) => {
                         let e = crate::Error::Browse(id, e);
-                        errors.send(e).await.unwrap()
+                        errors.send(e).await.unwrap();
                     }
                 }
                 tokio::time::sleep(BRWOSE_INTERVAL).await;

@@ -40,8 +40,8 @@ pub enum Event {
     Posts(usize),
     /// All pages are handled. No more post to offer.
     PostsExhausted,
-    /// A job is created.
-    Job(Job),
+    /// Jobs from a post are created.
+    Jobs(Vec<Job>),
     /// All posts are browsed. No more jobs to create.
     JobExhausted,
     /// A job is added to the download queue.
@@ -72,5 +72,5 @@ pub enum Error {
     #[error("{1}")]
     Browse(PostID, anyhow::Error),
     #[error("{1}")]
-    Download(Job, anyhow::Error),
+    Download(JobID, anyhow::Error),
 }
