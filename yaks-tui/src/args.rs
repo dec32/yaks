@@ -13,7 +13,6 @@ pub struct Args {
     pub platform: &'static str,
     pub user_id: UserID,
     pub range: RangeInclusive<PostID>,
-    pub cover: bool,
     pub out: &'static Path,
     pub template: &'static str,
     pub workers: u8,
@@ -32,7 +31,6 @@ impl TryFrom<RawArgs> for Args {
         RawArgs {
             link,
             range,
-            cover,
             out,
             template,
             jobs: workers,
@@ -79,7 +77,6 @@ impl TryFrom<RawArgs> for Args {
             platform,
             user_id,
             range,
-            cover,
             out,
             template,
             workers,
@@ -100,10 +97,6 @@ struct RawArgs {
     /// Can be specified as {min}-{max}, {min}- or -{max}.
     #[arg(short, long)]
     range: Option<String>,
-
-    /// Download cover images as well.
-    #[arg(short, long)]
-    cover: bool,
 
     /// Output directory for downloaded files.
     #[arg(short, long)]

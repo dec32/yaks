@@ -18,7 +18,6 @@ async fn main() -> anyhow::Result<()> {
         platform,
         user_id,
         range,
-        cover,
         out,
         template,
         workers,
@@ -32,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
 
     // let the engine run
     let engine = Engine::default();
-    let rx = engine.start(platform, user_id, range, cover, out, template, workers);
+    let rx = engine.start(platform, user_id, range, out, template, workers);
 
     // create the top 4 banners
     let fetch_profile = mp.add(ProgressBar::new(0));

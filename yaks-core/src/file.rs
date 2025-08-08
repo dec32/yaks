@@ -39,7 +39,6 @@ pub fn collect_files(
     platform: &'static str,
     user_id: UserID,
     profile: Profile,
-    cover: bool,
     out: &'static Path,
     template: &'static str,
     errors: Sender<crate::Error>,
@@ -62,7 +61,7 @@ pub fn collect_files(
         tokio::spawn(async move {
             while let Ok(post) = posts.recv().await {
                 let id = post.id;
-                match browse(post, platform, user_id, profile, cover, out, template).await {
+                match browse(post, platform, user_id, profile, out, template).await {
                     Ok(files) => {
                         tx.send(files).await.unwrap();
                     }
@@ -83,7 +82,6 @@ async fn browse(
     platform: &'static str,
     user_id: UserID,
     profile: Profile,
-    cover: bool,
     out: &'static Path,
     template: &'static str,
 ) -> anyhow::Result<Vec<File>> {
@@ -125,7 +123,6 @@ async fn browse(
         .previews
         .iter()
         .enumerate()
-        .skip(if cover { 0 } else { 1 })
     {
         let url = format!("{server}/data{path}").into_boxed_str();
         let name = PathBuf::from(name.replace("/", "／"));
