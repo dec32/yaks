@@ -2,7 +2,7 @@ use std::{result, sync::OnceLock, time::Duration};
 
 use reqwest::{Client, ClientBuilder};
 
-pub mod engine;
+mod engine;
 mod file;
 mod post;
 mod worker;

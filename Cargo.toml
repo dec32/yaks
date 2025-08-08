@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["yaks-core", "yaks-tui"]
+members = ["yaks-core", "yaks-gui", "yaks-tui"]
 
 [workspace.dependencies]
 anyhow = "1.0.98"

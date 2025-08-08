@@ -1,0 +1,204 @@
+import { LineEdit, HorizontalBox, Button, VerticalBox, ProgressIndicator, ComboBox, SpinBox, Spinner, CheckBox } from "std-widgets.slint";
+import { Center, RightAlignedRow } from "layout.slint";
+
+
+component Input inherits HorizontalBox {
+    in property <string> desc;
+    height: 48px;
+    Text {
+        text: desc;
+        font-size: 12px;
+        width: 50px;
+        vertical-alignment: center;
+    }
+    @children
+}
+
+
+component Process inherits Center {
+    in property <float> progress;
+    in property <string> name;
+    spacing: 10px;
+    Spinner {
+        progress: progress;
+        height: 15px;
+        width: 15px;
+    }
+    Text {
+        text: name;
+        font-size: 16px;
+        vertical-alignment: center;
+    }
+}
+
+component Range inherits HorizontalLayout {
+    spacing: 10px;
+    Text {
+        text: "from";
+        horizontal-stretch: 0;
+        vertical-alignment: center;
+    }
+    LineEdit {
+        placeholder-text: "Post ID";
+        input-type: number;
+        width: 80px;
+        horizontal-stretch: 0;
+    }
+    Text {
+        text: "to";
+        horizontal-stretch: 0;
+        vertical-alignment: center;
+    }
+    LineEdit {
+        placeholder-text: "Post ID";
+        input-type: number;
+        width: 80px;
+        horizontal-stretch: 0;
+    }
+}
+
+component Jobs inherits HorizontalLayout {
+    horizontal-stretch: 0;
+    spacing: 10px;
+    Text {
+        text: "Jobs:";
+        vertical-alignment: center;
+    }
+    VerticalLayout {
+        SpinBox {
+            width: 60px;
+            minimum: 1;
+            maximum: 255;
+            vertical-stretch: 0;
+        }
+    }
+}
+
+component Covers inherits HorizontalLayout {
+    horizontal-stretch: 0;
+    spacing: 5px;
+    Text {
+        text: "with covers";
+        horizontal-stretch: 0;
+        vertical-alignment: center;
+    }
+    ComboBox {
+        width: 100px;
+        model: ["included", "excluded"];
+        current-index: 1;
+    }
+}
+
+export component Downloader inherits VerticalLayout { 
+    in property <string> left-text;
+    in property <string> right-text;
+    in property <int> total;
+    in property <int> cur;
+    in property <float> progress;
+    spacing: 0;
+    // distance bewteen each downloader
+    padding-bottom: 15px;
+    // metadata
+    HorizontalBox {
+        // distance between meta and bar
+        padding-bottom: 5px;
+        padding-top: 0;
+        Text {
+            text: left-text;
+            vertical-alignment: bottom;
+        }
+        Text {
+            text: right-text;
+            horizontal-alignment: right;
+            vertical-alignment: bottom;
+        }       
+    }
+    // bar
+    ProgressIndicator {
+        height: 15px;
+        progress: cur / total;
+    }
+}
+
+export component MainWindow inherits Window {
+    title: "YAKS";
+    callback download();
+    MenuBar {
+        Menu {
+            title: "Options";
+            MenuItem {
+                title: "Settings";
+            }
+            MenuItem {
+                title: "About";
+            }
+        }
+    }
+    // main layout
+    VerticalBox {
+        padding-top: 35px;
+        spacing: 10px;
+        // url input
+        Input {
+            desc: "Artist:";
+            LineEdit {
+                placeholder-text: "Also accepts the format {platform}/{user_id} (e.g. fanbox/123456)";
+            }
+            Jobs {}
+            Button {
+                text: "Download";
+                width: 80px;
+                clicked => {
+                    root.download()
+                }
+            }
+        }
+        // save path
+        Input {
+            desc: "Save to:";
+            LineEdit {
+                placeholder-text: "Parent folder";
+            }
+            Button {
+                text: "Browse...";
+            }
+            Text {
+                text: "/";
+                vertical-alignment: center;
+                font-size: 18px;
+            }
+            LineEdit {
+                placeholder-text: "Use '/' to create sub-folders";
+            }
+        }
+        Input {
+            desc: "Filter:";
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+            Range {}
+            Covers {}
+        }
+        // general process
+        Process {
+            name: "Collecting Files";
+            progress: 50%;
+        }
+        // progress bars
+        VerticalBox {
+            spacing: 0;
+            Downloader {
+                left-text: "Total: " + self.cur + "/" + self.total + " (and more)";
+                right-text: "1.45 MiB/s";
+                cur: 13;
+                total: 80;
+            }
+            Downloader {
+                left-text: "123456_1.webp";
+                right-text: "545 KiB/s";
+                cur: 54;
+                total: 100;
+            }
+        }
+    }
+}
