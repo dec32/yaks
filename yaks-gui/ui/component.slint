@@ -1,0 +1,130 @@
+import { LineEdit, HorizontalBox, Button, VerticalBox, ProgressIndicator, ComboBox, SpinBox, Spinner, CheckBox } from "std-widgets.slint";
+
+export component Input inherits HorizontalBox {
+    in property <string> desc;
+    height: 48px;
+    Text {
+        text: desc;
+        font-size: 12px;
+        width: 50px;
+        vertical-alignment: center;
+    }
+    @children
+}
+export component Range inherits HorizontalLayout {
+    spacing: 10px;
+    out property <string> max;
+    out property <string> min;
+    Text {
+        text: "from";
+        horizontal-stretch: 0;
+        vertical-alignment: center;
+    }
+    LineEdit {
+        text <=> max;
+        placeholder-text: "Post ID";
+        input-type: number;
+        width: 80px;
+        horizontal-stretch: 0;
+    }
+    Text {
+        text: "to";
+        horizontal-stretch: 0;
+        vertical-alignment: center;
+    }
+    to := LineEdit {
+        text <=> min;
+        placeholder-text: "Post ID";
+        input-type: number;
+        width: 80px;
+        horizontal-stretch: 0;
+    }
+}
+
+
+export component Jobs inherits HorizontalLayout {
+    out property <int> value;
+    horizontal-stretch: 0;
+    spacing: 10px;
+    Text {
+        text: "Jobs:";
+        vertical-alignment: center;
+    }
+    VerticalLayout {
+        SpinBox {
+            value <=> value;
+            width: 100px;
+            minimum: 1;
+            maximum: 255;
+            vertical-stretch: 0;
+        }
+    }
+}
+
+export component Cover inherits HorizontalLayout {
+    out property <bool> included: current-index == 0;
+    out property <int> current-index: 1;
+    horizontal-stretch: 0;
+    spacing: 5px;
+    Text {
+        text: "with covers";
+        horizontal-stretch: 0;
+        vertical-alignment: center;
+    }
+    box := ComboBox {
+        width: 100px;
+        model: ["included", "excluded"];
+        current-index <=> current-index;
+    }
+}
+
+
+export component Process inherits HorizontalBox {
+    in property <float> progress;
+    in property <string> name;
+
+    spacing: 10px;
+    Rectangle { horizontal-stretch: 1; height: 0; }
+    Spinner {
+        progress: progress;
+        height: 15px;
+        width: 15px;
+    }
+    Text {
+        text: name;
+        font-size: 16px;
+        vertical-alignment: center;
+    }
+    Rectangle { horizontal-stretch: 1; height: 0; }
+}
+
+export component Downloader inherits VerticalLayout { 
+    in property <string> left-text;
+    in property <string> right-text;
+    in property <int> total;
+    in property <int> cur;
+    in property <float> progress;
+    spacing: 0;
+    // distance bewteen each downloader
+    padding-bottom: 15px;
+    // metadata
+    HorizontalBox {
+        // distance between meta and bar
+        padding-bottom: 5px;
+        padding-top: 0;
+        Text {
+            text: left-text;
+            vertical-alignment: bottom;
+        }
+        Text {
+            text: right-text;
+            horizontal-alignment: right;
+            vertical-alignment: bottom;
+        }       
+    }
+    // bar
+    ProgressIndicator {
+        height: 15px;
+        progress: cur / total;
+    }
+}

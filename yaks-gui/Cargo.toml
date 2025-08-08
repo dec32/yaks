@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+async-channel.workspace = true
 slint = "1.12"
-yaks-core = { path = "../yaks-core" }
+tokio.workspace = true
+yaks-core.path = "../yaks-core"
 
 [build-dependencies]
 slint-build = "1.12"
