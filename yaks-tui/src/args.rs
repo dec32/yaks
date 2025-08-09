@@ -1,14 +1,15 @@
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
+use leaky::Leak;
 use yaks_common::Range;
 use yaks_core::Conf;
 
 pub struct Args {
-    pub url: &'static str,
+    pub url: Leak<str>,
     pub range: Range,
-    pub out: &'static Path,
-    pub template: &'static str,
+    pub out: Leak<Path>,
+    pub template: Leak<str>,
     pub workers: u8,
 }
 
@@ -24,20 +25,14 @@ impl Args {
             .or_else(|| dirs_next::download_dir())
             .ok_or(anyhow::anyhow!(
                 "Can not locate the default download folder"
-            ))?;
-        // where is my PathBuf::leak dear Rust team?
-        let out = out
-            .to_str()
-            .ok_or(anyhow::anyhow!("Unrecognizable out path."))?
-            .to_string()
-            .leak();
-        let out = Path::new(out);
-        let template = conf.template.unwrap_or(args.template).leak();
+            ))?
+            .into();
+        let template = conf.template.unwrap_or(args.template).into();
 
         let workers = conf.jobs.unwrap_or(args.jobs);
 
         // only present in args
-        let url = args.url.leak();
+        let url = args.url.into();
 
         let range = if let Some(range) = args.range {
             range.parse()?

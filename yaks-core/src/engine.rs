@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use async_channel::{self, Receiver, Sender};
+use leaky::Leak;
 use yaks_common::{Range, SenderExt};
 
 use crate::{
@@ -15,10 +16,10 @@ pub struct Engine {}
 impl Engine {
     pub fn start(
         self,
-        url: &'static str,
+        url: Leak<str>,
         range: Range,
-        out: &'static Path,
-        template: &'static str,
+        out: Leak<Path>,
+        template: Leak<str>,
         workers: u8,
     ) -> Receiver<crate::Result<Event>> {
         // event chann (for TUI/GUI)

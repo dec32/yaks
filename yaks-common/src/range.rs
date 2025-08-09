@@ -1,8 +1,11 @@
+use std::{
+    cmp::Ordering,
+    fmt::{self, Display},
+    str::FromStr,
+    u64,
+};
+
 use anyhow::Result;
-use std::cmp::Ordering;
-use std::fmt::{self, Display};
-use std::str::FromStr;
-use std::u64;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Range {
@@ -18,7 +21,10 @@ impl Range {
 
 impl Default for Range {
     fn default() -> Self {
-        Self { start: 0, end: u64::MAX }
+        Self {
+            start: 0,
+            end: u64::MAX,
+        }
     }
 }
 
@@ -34,11 +40,7 @@ impl FromStr for Range {
         let parts: Vec<&str> = s.split('~').collect();
         let (start, end) = match parts.as_slice() {
             [s_str, e_str] => {
-                let start = if s_str.is_empty() {
-                    0
-                } else {
-                    s_str.parse()?
-                };
+                let start = if s_str.is_empty() { 0 } else { s_str.parse()? };
                 let end = if e_str.is_empty() {
                     u64::MAX
                 } else {

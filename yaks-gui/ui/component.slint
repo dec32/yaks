@@ -61,24 +61,6 @@ export component Jobs inherits HorizontalLayout {
     }
 }
 
-export component Cover inherits HorizontalLayout {
-    out property <bool> included: current-index == 0;
-    out property <int> current-index: 1;
-    horizontal-stretch: 0;
-    spacing: 5px;
-    Text {
-        text: "with covers";
-        horizontal-stretch: 0;
-        vertical-alignment: center;
-    }
-    box := ComboBox {
-        width: 100px;
-        model: ["included", "excluded"];
-        current-index <=> current-index;
-    }
-}
-
-
 export component Process inherits HorizontalBox {
     in property <float> progress;
     in property <string> name;

@@ -7,6 +7,7 @@ edition = "2024"
 async-channel.workspace = true
 slint = "1.12"
 tokio.workspace = true
+yaks-common.path = "../yaks-common"
 yaks-core.path = "../yaks-core"
 
 [build-dependencies]

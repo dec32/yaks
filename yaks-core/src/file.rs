@@ -5,6 +5,7 @@ use std::{
 
 use async_channel::{self, Receiver, Sender};
 use derive_more::Deref;
+use leaky::Leak;
 use serde::Deserialize;
 use tokio::fs;
 use ustr::Ustr;
@@ -40,8 +41,8 @@ pub fn collect_files(
     platform: &'static str,
     user_id: UserID,
     profile: Profile,
-    out: &'static Path,
-    template: &'static str,
+    out: Leak<Path>,
+    template: Leak<str>,
     errors: Sender<crate::Error>,
 ) -> Receiver<Vec<File>> {
     let (tx, rx) = async_channel::unbounded();
@@ -83,8 +84,8 @@ async fn browse(
     platform: &'static str,
     user_id: UserID,
     profile: Profile,
-    out: &'static Path,
-    template: &'static str,
+    out: Leak<Path>,
+    template: Leak<str>,
 ) -> anyhow::Result<Vec<File>> {
     #[derive(Debug, Deserialize)]
     #[serde(bound = "'de: 'body")]

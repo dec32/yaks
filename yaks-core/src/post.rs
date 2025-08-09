@@ -1,3 +1,4 @@
+use leaky::Leak;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
@@ -6,10 +7,10 @@ use yaks_common::Range;
 
 use crate::{API_BASE, BROWSE_RETRY_AFTER, BROWSE_RETRY_TIMES, SCRAPE_INTERVAL, UserID, client};
 
-pub fn parse_url(url: &'static str) -> anyhow::Result<(&'static str, UserID)> {
+pub fn parse_url(url: Leak<str>) -> anyhow::Result<(&'static str, UserID)> {
     let split = url.split("/").collect::<Vec<_>>();
     let (platform, user_id) = if split.len() == 2 {
-        (split[0].to_string().leak(), split[1].parse()?)
+        (split[0].to_string().leak(), split[1].to_string().leak())
     } else {
         let Some(index) = split.iter().copied().position(|s| s == "user") else {
             return Err(anyhow::anyhow!("Cannot parse URL `{}`", url));
@@ -19,7 +20,7 @@ pub fn parse_url(url: &'static str) -> anyhow::Result<(&'static str, UserID)> {
         }
         (
             split[index - 1].to_string().leak(),
-            split[index + 1].parse()?,
+            split[index + 1].to_string().leak(),
         )
     };
     Ok((platform, user_id))

@@ -13,6 +13,7 @@ dirs-next = "2.0.0"
 env_logger = "0.11.8"
 futures = "0.3.31"
 indicatif = { version = "0.17", features = ["in_memory"] }
+leaky.git = "https://github.com/dec32/leaky.git"
 log = "0.4.27"
 reqwest = { version = "0.12", features = ["json", "stream"] }
 serde = { version = "1.0", features = ["derive"] }

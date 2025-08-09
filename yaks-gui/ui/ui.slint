@@ -1,5 +1,5 @@
 import { LineEdit, HorizontalBox, Button, VerticalBox, ProgressIndicator, ComboBox, SpinBox, Spinner, CheckBox } from "std-widgets.slint";
-import { Input, Jobs, Range, Cover, Process, Downloader } from "component.slint";
+import { Input, Jobs, Range, Process, Downloader } from "component.slint";
 
 
 export component MainWindow inherits Window {
@@ -10,7 +10,6 @@ export component MainWindow inherits Window {
         template: string,
         from: string,
         to: string,
-        cover: bool,
         workers: int,
     );
     // main layout
@@ -32,7 +31,6 @@ export component MainWindow inherits Window {
                         template.text,
                         range.max,
                         range.min,
-                        cover.included,
                         jobs.value,
                     )
                 }
@@ -57,7 +55,6 @@ export component MainWindow inherits Window {
                 horizontal-stretch: 1;
             }
             range := Range {}
-            cover := Cover {}
         }
         // general process
         Process {

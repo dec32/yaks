@@ -13,7 +13,6 @@ pub use conf::Conf;
 pub use engine::Engine;
 pub use file::{File, FileID};
 pub use post::{Post, PostID, Profile};
-use ustr::Ustr;
 
 // consts
 pub(crate) const API_BASE: &str = "https://kemono.cr/api/v1";
@@ -32,7 +31,7 @@ pub(crate) fn client() -> &'static Client {
 
 // types
 pub type Result<T, E = crate::Error> = result::Result<T, E>;
-pub type UserID = Ustr;
+pub type UserID = &'static str;
 
 /// Event sent to the UI, by the engine, not the submodules.
 ///

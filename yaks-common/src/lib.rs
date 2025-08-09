@@ -1,5 +1,5 @@
-mod range;
 mod channel;
+mod range;
 
-pub use range::Range;
 pub use channel::SenderExt;
+pub use range::Range;
