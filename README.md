@@ -3,6 +3,7 @@
 It downloads content from Kemono.
 
 [![[DOWNLOAD]](https://img.shields.io/badge/DOWNLOAD-Windows--x86__x64-blue)](https://github.com/dec32/yaks/releases/download/nightly/yaks-windows-x86_64.exe)
+
 [![[DOWNLOAD]](https://img.shields.io/badge/DOWNLOAD-Linux--x86__x64-blue)](https://github.com/dec32/yaks/releases/download/nightly/yaks-linux-x86_64)
 
 (I haven't figured out how to build the mac one)
@@ -16,7 +17,7 @@ The popular ones do not support arranging files into different folders with cust
 Just use the command:
 
 ```Bash
-yaks <URL>
+yaks $URL
 ```
 
 to download all the files from an artist.
@@ -24,10 +25,10 @@ to download all the files from an artist.
 You can filter out posts by their IDs using `--range`/`-r`
 
 ```Bash
-# The ranges are **INCLUSIVE**
-yaks <URL> --range ~67890
-yaks <URL> --range 12345~
-yaks <URL> --range 12345~67890
+# The ranges are left-closed, like [a, b)
+yaks $URL --range ..67890
+yaks $URL --range 12345..
+yaks $URL --range 12345..67890
 ```
 
 By default the files are saved to `$HOME/Downloads`, named as `{post_id}_{index}` (extentions are automatically handled) and goes in to a folder named by the artist's nickname.
@@ -35,13 +36,13 @@ By default the files are saved to `$HOME/Downloads`, named as `{post_id}_{index}
 If you want to save the files elsewhere, use `--out`/`-o`:
 
 ```Bash
-yaks <URL> --out /i/want/them/saved/here
+yaks $URL --out /i/want/them/saved/here
 ```
 
 If you want name and arrange the files differently, use `--template`/`-t`:
 
 ```Bash
-yaks <URL> --template {nickname}/{title}_{filename}
+yaks $URL --template {nickname}/{title}_{filename}
 ```
 
 The supported placeholders are:
@@ -53,7 +54,7 @@ You probably don't need to adjust the level of concurrency, but `--jobs`/`-j` co
 
 ```Bash
 # My internet is super fast and I am not afraid of 429 Too Many Request.
-yaks <URL> --j255
+yaks $URL --j255
 ```
 
 ## You say I need to type the arguments every single time?

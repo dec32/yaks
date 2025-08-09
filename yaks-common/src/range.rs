@@ -37,14 +37,14 @@ impl PartialEq<u64> for Range {
 impl FromStr for Range {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts: Vec<&str> = s.split('~').collect();
+        let parts: Vec<&str> = s.split("..").collect();
         let (start, end) = match parts.as_slice() {
             [s_str, e_str] => {
                 let start = if s_str.is_empty() { 0 } else { s_str.parse()? };
                 let end = if e_str.is_empty() {
                     u64::MAX
                 } else {
-                    e_str.parse()?
+                    e_str.parse::<u64>()? - 1
                 };
                 (start, end)
             }
