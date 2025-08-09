@@ -3,10 +3,6 @@ name = "yaks-tui"
 version = "0.1.0"
 edition = "2024"
 
-[[bin]]
-path = "src/main.rs"
-name = "yaks"
-
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
