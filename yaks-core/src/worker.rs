@@ -6,6 +6,7 @@ use tokio::{
     io::AsyncWriteExt,
     pin,
 };
+use yaks_common::SenderExt;
 
 use crate::{FileID, client, file::File};
 
@@ -46,14 +47,14 @@ async fn work(files: Receiver<File>, tx: Sender<(FileID, Prog)>, errors: Sender<
         let id = file.id();
         let stream = download(file.clone());
         pin!(stream);
-        tx.send((id, Prog::Enqueue)).await.unwrap();
+        tx.send_or_panic((id, Prog::Enqueue)).await;
         while let Some(progress) = stream.next().await {
             match progress {
                 // todo: too much clone here
-                Ok(progress) => tx.send((id, progress)).await.unwrap(),
+                Ok(progress) => tx.send_or_panic((id, progress)).await,
                 Err(e) => {
                     let e = crate::Error::Download(id, e);
-                    errors.send(e).await.unwrap();
+                    errors.send_or_panic(e).await;
                     break;
                 }
             }

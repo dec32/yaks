@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use async_channel::{self, Receiver, Sender};
-use yaks_common::Range;
+use yaks_common::{Range, SenderExt};
 
 use crate::{
     Event, File, FileID, file,
@@ -32,7 +32,7 @@ impl Engine {
             let (platform, user_id) = match post::parse_url(url) {
                 Ok(parsed) => parsed,
                 Err(e) => {
-                    error_tx.send(crate::Error::Profile(e)).await.unwrap();
+                    error_tx.send_or_panic(crate::Error::Profile(e)).await;
                     return;
                 }
             };
@@ -41,24 +41,24 @@ impl Engine {
                 Ok(profile) => profile,
                 Err(e) => {
                     println!("Error fetching profile {e}");
-                    error_tx.send(crate::Error::Profile(e)).await.unwrap();
+                    error_tx.send_or_panic(crate::Error::Profile(e)).await;
                     return;
                 }
             };
-            events.send(Ok(Event::Profile(profile))).await.unwrap();
+            events.send_or_panic(Ok(Event::Profile(profile))).await;
             // scrape all posts
             let posts = match post::scrape_posts(platform, user_id, range).await {
                 Ok(posts) => {
-                    events.send(Ok(Event::Posts(posts.len()))).await.unwrap();
+                    events.send_or_panic(Ok(Event::Posts(posts.len()))).await;
                     posts
                 }
                 Err(e) => {
                     println!("Error creating posts {e}");
-                    error_tx.send(crate::Error::Scrape(e)).await.unwrap();
+                    error_tx.send_or_panic(crate::Error::Scrape(e)).await;
                     return;
                 }
             };
-            events.send(Ok(Event::PostsExhausted)).await.unwrap();
+            events.send_or_panic(Ok(Event::PostsExhausted)).await;
             // collect files. each file will have two copies. one for download and one for UI.
             let files_rx = file::collect_files(
                 posts,
@@ -81,7 +81,7 @@ impl Engine {
 fn listen_errors(errors: Receiver<crate::Error>, events: Sender<crate::Result<Event>>) {
     tokio::spawn(async move {
         while let Ok(e) = errors.recv().await {
-            events.send(Err(e)).await.unwrap();
+            events.send_or_panic(Err(e)).await;
         }
     });
 }
@@ -94,11 +94,11 @@ fn listen_files(
     tokio::spawn(async move {
         while let Ok(files) = files_rx.recv().await {
             for file in files.iter().cloned() {
-                tx.send(file).await.unwrap();
+                tx.send_or_panic(file).await;
             }
-            events.send(Ok(Event::Files(files))).await.unwrap();
+            events.send_or_panic(Ok(Event::Files(files))).await;
         }
-        events.send(Ok(Event::FilesExhausted)).await.unwrap();
+        events.send_or_panic(Ok(Event::FilesExhausted)).await;
     });
     rx
 }
@@ -112,8 +112,8 @@ fn listen_prog(prog: Receiver<(FileID, Prog)>, events: Sender<crate::Result<Even
                 Prog::Chunk(size) => Event::Chunk(id, size),
                 Prog::Fin => Event::Fin(id),
             };
-            events.send(Ok(event)).await.unwrap();
+            events.send_or_panic(Ok(event)).await;
         }
-        events.send(Ok(Event::Clear)).await.unwrap();
+        events.send_or_panic(Ok(Event::Clear)).await;
     });
 }

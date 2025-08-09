@@ -8,6 +8,7 @@ use derive_more::Deref;
 use serde::Deserialize;
 use tokio::fs;
 use ustr::Ustr;
+use yaks_common::SenderExt;
 
 use crate::{
     API_BASE, BROWSE_INTERVAL, POST_BROWSERS, UserID, client,
@@ -48,7 +49,7 @@ pub fn collect_files(
     let (post_tx, post_rx) = async_channel::bounded(POST_BROWSERS);
     tokio::spawn(async move {
         for post in posts {
-            post_tx.send(post).await.unwrap();
+            post_tx.send_or_panic(post).await;
         }
     });
     let posts = post_rx;
@@ -63,11 +64,11 @@ pub fn collect_files(
                 let id = post.id;
                 match browse(post, platform, user_id, profile, out, template).await {
                     Ok(files) => {
-                        tx.send(files).await.unwrap();
+                        tx.send_or_panic(files).await;
                     }
                     Err(e) => {
                         let e = crate::Error::Browse(id, e);
-                        errors.send(e).await.unwrap();
+                        errors.send_or_panic(e).await;
                     }
                 }
                 tokio::time::sleep(BROWSE_INTERVAL).await;
