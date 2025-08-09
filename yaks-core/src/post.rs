@@ -58,6 +58,7 @@ pub async fn scrape_posts(
     }
     let mut res = Vec::new();
     let mut offset = 0;
+    'quit:
     loop {
         let url = format!("{API_BASE}/{platform}/user/{user_id}/posts-legacy?o={offset}");
         let Payload {
@@ -82,15 +83,19 @@ pub async fn scrape_posts(
         };
 
         for post in posts {
-            if !range.contains(&post.id) {
+            if post.id > *range.end() {
                 continue;
+            }
+            if post.id < *range.start() {
+                break 'quit;
             }
             res.push(post);
         }
         offset += page_size;
         if offset > count {
-            break Ok(res);
+            break;
         }
         tokio::time::sleep(SCRAPE_INTERVAL).await;
     }
+    Ok(res)
 }
