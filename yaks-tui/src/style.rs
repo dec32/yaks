@@ -56,14 +56,19 @@ progress_style! {
     "◴◷◶◵ "
 }
 progress_style! {
-    clear,
-    "{spinner:.green} {msg}",
-    "✓✓"
-}
-progress_style! {
     error,
     "{spinner:.red} [{pos}/{len}] {msg}",
     "!!"
+}
+progress_style! {
+    finish_with_error,
+    "{spinner:.red} {msg} :(",
+    "!!"
+}
+progress_style! {
+    finish,
+    "{spinner:.green} {msg} :)",
+    "✓✓"
 }
 // for progress bars
 progress_style! {
@@ -74,11 +79,6 @@ progress_style! {
 progress_style! {
     running,
     "{spinner:.blue} {msg:<20} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})"
-}
-progress_style! {
-    failed,
-    "{spinner:.red} {msg:<20} [{elapsed_precise}] [{wide_bar:.red/blue}] {bytes}/{total_bytes}",
-    "!!"
 }
 // for speed
 progress_style! {

@@ -24,16 +24,19 @@ async fn main() -> anyhow::Result<()> {
     } = Args::from_conf_then_env().await?;
 
     // tui
-    let mut files = HashMap::new();
-    let mut bars = HashMap::new();
     let mp = MultiProgress::new();
-    mp.set_draw_target(ProgressDrawTarget::hidden());
+    let mut bars = HashMap::new();
+    let mut files = HashMap::new();
+    let mut browse_errors = HashMap::new();
+    let mut download_errors = HashMap::new();
+    let mut waiting = true;
 
     // let the engine run
     let engine = Engine::default();
     let rx = engine.start(platform, user_id, range, out, template, workers);
 
-    // create the top 4 banners
+    // create the top banners
+    mp.set_draw_target(ProgressDrawTarget::hidden());
     let fetch_profile = mp.add(ProgressBar::new(0));
     fetch_profile.set_style(style::fetch_profile());
     fetch_profile.set_message("Fetching profile...");
@@ -62,13 +65,13 @@ async fn main() -> anyhow::Result<()> {
     mp.remove(&speed);
     mp.set_draw_target(ProgressDrawTarget::stderr());
 
-    // render from app events
+    // render from engine events
     while let Ok(event) = rx.recv().await {
         match event {
             Ok(event) => match event {
                 Event::Profile(_profile) => {
-                    fetch_profile.set_style(style::clear());
-                    fetch_profile.finish_with_message("Profile fetched.");
+                    fetch_profile.set_style(style::finish());
+                    fetch_profile.finish_with_message("Profile fetched");
                     scrape_posts = mp.add(scrape_posts);
                 }
                 Event::Posts(posts) => {
@@ -76,8 +79,8 @@ async fn main() -> anyhow::Result<()> {
                     collect_files.inc_length(posts as u64);
                 }
                 Event::PostsExhausted => {
-                    scrape_posts.set_style(style::clear());
-                    scrape_posts.finish_with_message("Posts scraped.");
+                    scrape_posts.set_style(style::finish());
+                    scrape_posts.finish_with_message("Posts scraped");
                     collect_files = mp.add(collect_files);
                     download = mp.add(download);
                     speed = mp.add(speed);
@@ -90,10 +93,19 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
                 Event::FilesExhausted => {
-                    mp.remove(&collect_files);
+                    if browse_errors.is_empty() {
+                        collect_files.set_style(style::finish());
+                        collect_files.finish_with_message("All files collected");
+                    } else {
+                        collect_files.set_style(style::finish_with_error());
+                        collect_files.finish_with_message("Failed to collect all files");
+                    }
                 }
                 Event::Enqueue(id) => {
-                    download.set_message("Downloading...");
+                    if waiting {
+                        download.set_message("Downloading...");
+                        waiting = false;
+                    }
                     let bar = mp.add(ProgressBar::new(0));
                     bar.set_style(style::enqueued());
                     bar.set_length(u64::MAX);
@@ -119,37 +131,44 @@ async fn main() -> anyhow::Result<()> {
                     mp.remove(&bars.remove(&id).unwrap());
                 }
                 Event::Clear => {
-                    download.set_style(style::clear());
-                    download.finish_with_message("Clear :)");
+                    if browse_errors.is_empty() && download_errors.is_empty() {
+                        download.set_style(style::finish());
+                        download.finish_with_message("Clear");
+                    } else {
+                        download.set_style(style::finish_with_error());
+                        download.finish_with_message("Failed to download all files");
+                    }
                     break;
                 }
             },
-            Err(e) => {
-                match e {
-                    Error::Profile(e) => {
-                        fetch_profile.set_style(style::error());
-                        fetch_profile
-                            .finish_with_message(format!("Failed to fetch profile :(\n{e}"));
-                        break;
-                    }
-                    Error::Scrape(e) => {
-                        scrape_posts.set_style(style::error());
-                        scrape_posts.finish_with_message(format!("Failed to scrape posts :(\n{e}"));
-                        break;
-                    }
-                    Error::Browse(id, e) => {
-                        collect_files.set_style(style::error());
-                        collect_files
-                            .set_message(format!("Failed to collect files from post {id} ({e})"));
-                    }
-                    Error::Download(id, _e) => {
-                        // todo: display the message?
-                        let bar = bars.remove(&id).unwrap();
-                        bar.set_style(style::failed());
-                        bar.finish();
-                    }
+            Err(e) => match e {
+                Error::Profile(e) => {
+                    fetch_profile.set_style(style::finish_with_error());
+                    fetch_profile.finish_with_message(format!("Failed to fetch profile\n{e}"));
+                    break;
                 }
-            }
+                Error::Scrape(e) => {
+                    scrape_posts.set_style(style::finish_with_error());
+                    scrape_posts.finish_with_message(format!("Failed to scrape posts\n{e}"));
+                    break;
+                }
+                Error::Browse(id, e) => {
+                    collect_files.set_style(style::error());
+                    collect_files.set_message(format!(
+                        "Collecting files...(Failed to collect files from post {id} ({e}))"
+                    ));
+                    browse_errors.insert(id, e);
+                }
+                Error::Download(id, e) => {
+                    let filename = files.get(&id).unwrap().filename.as_ref();
+                    download.set_style(style::error());
+                    download.set_message(format!(
+                        "Downloading...(Failed to download file {filename} ({e}))"
+                    ));
+                    bars.remove(&id).unwrap();
+                    download_errors.insert(id, e);
+                }
+            },
         }
     }
     Ok(())
