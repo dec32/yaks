@@ -63,16 +63,16 @@ struct RawArgs {
     #[arg(required = true)]
     url: String,
     /// Inclusive range of IDs of posts to download.
-    /// Can be specified as {min}~{max}, {min}~ or ~{max}.
+    /// Can be specified as {min}~{max}, {min}~ or ~{max}
     #[arg(short, long)]
     range: Option<String>,
-    /// Output directory for downloaded files.
+    /// Output directory for downloaded files [default: $HOME/Downloads]
     #[arg(short, long)]
     out: Option<PathBuf>,
-    /// Filename template for downloaded files.
+    /// Filename template for downloaded files
     #[arg(short, long, default_value = "{nickname}/{post_id}_{index}")]
     template: String,
-    /// Maximum amount of parallel jobs.
+    /// Maximum amount of parallel jobs
     #[arg(short, long, default_value = "5")]
     jobs: u8,
 }
