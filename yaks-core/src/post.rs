@@ -1,9 +1,8 @@
-use std::ops::RangeInclusive;
-
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
 use ustr::Ustr;
+use yaks_common::Range;
 
 use crate::{API_BASE, BROWSE_RETRY_AFTER, BROWSE_RETRY_TIMES, SCRAPE_INTERVAL, UserID, client};
 
@@ -60,7 +59,7 @@ pub type PostID = u64;
 pub async fn scrape_posts(
     platform: &'static str,
     user_id: UserID,
-    range: RangeInclusive<PostID>,
+    range: Range,
 ) -> anyhow::Result<Vec<Post>> {
     #[derive(Debug, Deserialize)]
     struct Payload {
@@ -101,10 +100,10 @@ pub async fn scrape_posts(
         };
 
         for post in posts {
-            if post.id > *range.end() {
+            if post.id > range {
                 continue;
             }
-            if post.id < *range.start() {
+            if post.id < range {
                 break 'quit;
             }
             res.push(post);

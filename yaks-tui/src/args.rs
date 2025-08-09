@@ -1,14 +1,12 @@
-use std::{
-    ops::RangeInclusive,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
-use yaks_core::{Conf, PostID};
+use yaks_common::Range;
+use yaks_core::Conf;
 
 pub struct Args {
     pub url: &'static str,
-    pub range: RangeInclusive<PostID>,
+    pub range: Range,
     pub out: &'static Path,
     pub template: &'static str,
     pub workers: u8,
@@ -40,19 +38,12 @@ impl Args {
 
         // only present in args
         let url = args.url.leak();
-        let (start, end) = args
-            .range
-            .map(|s| s.leak().split_once("~"))
-            .map(|o| o.ok_or(anyhow::anyhow!("Ranges are split by ~")))
-            .unwrap_or(Ok(("", "")))?;
 
-        let start = if start.is_empty() { 0 } else { start.parse()? };
-        let end = if end.is_empty() {
-            PostID::MAX
+        let range = if let Some(range) = args.range {
+            range.parse()?
         } else {
-            end.parse()?
+            Range::default()
         };
-        let range = RangeInclusive::new(start, end);
         let args = Args {
             url,
             range,

@@ -1,10 +1,11 @@
-use std::{ops::RangeInclusive, path::Path};
+use std::path::Path;
 
 use async_channel::{self, Receiver, Sender};
+use yaks_common::Range;
 
 use crate::{
     Event, File, FileID, file,
-    post::{self, PostID},
+    post::{self},
     worker::{self, Prog},
 };
 
@@ -15,7 +16,7 @@ impl Engine {
     pub fn start(
         self,
         url: &'static str,
-        range: RangeInclusive<PostID>,
+        range: Range,
         out: &'static Path,
         template: &'static str,
         workers: u8,

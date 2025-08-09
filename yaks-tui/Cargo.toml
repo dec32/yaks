@@ -16,4 +16,5 @@ reqwest.workspace = true
 serde.workspace = true
 serde_with.workspace = true
 tokio.workspace = true
+yaks-common.path = "../yaks-common"
 yaks-core.path = "../yaks-core"

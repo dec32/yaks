@@ -3,4 +3,4 @@ fmt *ARGS:
 gui *ARGS:
     cargo run --package yaks-gui
 test:
-    cargo run --package yaks-tui -- patreon/470718
+    cargo run --package yaks-tui -- patreon/470718 --range 67928516~
