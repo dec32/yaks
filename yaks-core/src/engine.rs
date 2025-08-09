@@ -3,7 +3,7 @@ use std::{ops::RangeInclusive, path::Path};
 use async_channel::{self, Receiver, Sender};
 
 use crate::{
-    Event, File, FileID, UserID, file,
+    Event, File, FileID, file,
     post::{self, PostID},
     worker::{self, Prog},
 };
@@ -14,8 +14,7 @@ pub struct Engine {}
 impl Engine {
     pub fn start(
         self,
-        platform: &'static str,
-        user_id: UserID,
+        url: &'static str,
         range: RangeInclusive<PostID>,
         out: &'static Path,
         template: &'static str,
@@ -28,6 +27,14 @@ impl Engine {
         listen_errors(errors, events.clone());
 
         tokio::spawn(async move {
+            // parsing url
+            let (platform, user_id) = match post::parse_url(url) {
+                Ok(parsed) => parsed,
+                Err(e) => {
+                    error_tx.send(crate::Error::Profile(e)).await.unwrap();
+                    return;
+                }
+            };
             // fetching profile
             let profile = match post::fetch_profile(platform, user_id).await {
                 Ok(profile) => profile,

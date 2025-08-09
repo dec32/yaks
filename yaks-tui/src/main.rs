@@ -15,8 +15,7 @@ mod style;
 async fn main() -> anyhow::Result<()> {
     // args
     let Args {
-        platform,
-        user_id,
+        url,
         range,
         out,
         template,
@@ -33,7 +32,7 @@ async fn main() -> anyhow::Result<()> {
 
     // let the engine run
     let engine = Engine::default();
-    let rx = engine.start(platform, user_id, range, out, template, workers);
+    let rx = engine.start(url, range, out, template, workers);
 
     // create the top banners
     mp.set_draw_target(ProgressDrawTarget::hidden());
@@ -144,12 +143,12 @@ async fn main() -> anyhow::Result<()> {
             Err(e) => match e {
                 Error::Profile(e) => {
                     fetch_profile.set_style(style::finish_with_error());
-                    fetch_profile.finish_with_message(format!("Failed to fetch profile\n{e}"));
+                    fetch_profile.finish_with_message(format!("Failed to fetch profile ({e})"));
                     break;
                 }
                 Error::Scrape(e) => {
                     scrape_posts.set_style(style::finish_with_error());
-                    scrape_posts.finish_with_message(format!("Failed to scrape posts\n{e}"));
+                    scrape_posts.finish_with_message(format!("Failed to scrape posts ({e})"));
                     break;
                 }
                 Error::Browse(id, e) => {

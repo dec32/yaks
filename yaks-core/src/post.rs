@@ -7,6 +7,25 @@ use ustr::Ustr;
 
 use crate::{API_BASE, BROWSE_RETRY_AFTER, BROWSE_RETRY_TIMES, SCRAPE_INTERVAL, UserID, client};
 
+pub fn parse_url(url: &'static str) -> anyhow::Result<(&'static str, UserID)> {
+    let split = url.split("/").collect::<Vec<_>>();
+    let (platform, user_id) = if split.len() == 2 {
+        (split[0].to_string().leak(), split[1].parse()?)
+    } else {
+        let Some(index) = split.iter().copied().position(|s| s == "user") else {
+            return Err(anyhow::anyhow!("Cannot parse URL `{}`", url));
+        };
+        if index >= split.len() {
+            return Err(anyhow::anyhow!("Cannot parse URL `{}`", url));
+        }
+        (
+            split[index - 1].to_string().leak(),
+            split[index + 1].parse()?,
+        )
+    };
+    Ok((platform, user_id))
+}
+
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub struct Profile {
     #[serde(rename = "name")]
@@ -58,8 +77,7 @@ pub async fn scrape_posts(
     }
     let mut res = Vec::new();
     let mut offset = 0;
-    'quit:
-    loop {
+    'quit: loop {
         let url = format!("{API_BASE}/{platform}/user/{user_id}/posts-legacy?o={offset}");
         let Payload {
             posts,

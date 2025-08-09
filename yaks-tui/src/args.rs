@@ -3,13 +3,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::anyhow;
 use clap::Parser;
-use yaks_core::{Conf, PostID, UserID};
+use yaks_core::{Conf, PostID};
 
 pub struct Args {
-    pub platform: &'static str,
-    pub user_id: UserID,
+    pub url: &'static str,
     pub range: RangeInclusive<PostID>,
     pub out: &'static Path,
     pub template: &'static str,
@@ -41,6 +39,7 @@ impl Args {
         let workers = conf.jobs.unwrap_or(args.jobs);
 
         // only present in args
+        let url = args.url.leak();
         let (start, end) = args
             .range
             .map(|s| s.leak().split_once("~"))
@@ -54,25 +53,8 @@ impl Args {
             end.parse()?
         };
         let range = RangeInclusive::new(start, end);
-        let split = args.link.split("/").collect::<Vec<_>>();
-        let (platform, user_id) = if split.len() == 2 {
-            (split[0].to_string().leak(), split[1].parse()?)
-        } else {
-            let Some(index) = split.iter().copied().position(|s| s == "user") else {
-                return Err(anyhow!("Cannot parse link `{}`", args.link));
-            };
-            if index >= split.len() {
-                return Err(anyhow!("Cannot parse link `{}`", args.link));
-            }
-            (
-                split[index - 1].to_string().leak(),
-                split[index + 1].parse()?,
-            )
-        };
-
         let args = Args {
-            platform,
-            user_id,
+            url,
             range,
             out,
             template,
@@ -88,7 +70,7 @@ struct RawArgs {
     /// URL of the page to download.
     /// Also accepts the format {platform}/{user_id} (e.g. fanbox/123456)
     #[arg(required = true)]
-    link: String,
+    url: String,
     /// Inclusive range of IDs of posts to download.
     /// Can be specified as {min}-{max}, {min}- or -{max}.
     #[arg(short, long)]
