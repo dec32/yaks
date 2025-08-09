@@ -1,10 +1,11 @@
 use std::ops::RangeInclusive;
 
+use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
 use ustr::Ustr;
 
-use crate::{API_BASE, SCRAPE_INTERVAL, UserID, client};
+use crate::{API_BASE, BROWSE_RETRY_AFTER, BROWSE_RETRY_TIMES, SCRAPE_INTERVAL, UserID, client};
 
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub struct Profile {
@@ -62,13 +63,24 @@ pub async fn scrape_posts(
         let Payload {
             posts,
             props: Props { page_size, count },
-        } = client()
-            .get(&url)
-            .send()
-            .await?
-            .error_for_status()?
-            .json()
-            .await?;
+        } = {
+            let mut retry = 0;
+            loop {
+                let resp = client().get(&url).send().await?;
+                if resp.status() == StatusCode::TOO_MANY_REQUESTS {
+                    if retry >= BROWSE_RETRY_TIMES {
+                        break resp.error_for_status()?.json().await?;
+                    } else {
+                        retry += 1;
+                        tokio::time::sleep(BROWSE_RETRY_AFTER).await;
+                        continue;
+                    }
+                } else {
+                    break resp.error_for_status()?.json().await?;
+                };
+            }
+        };
+
         for post in posts {
             if !range.contains(&post.id) {
                 continue;

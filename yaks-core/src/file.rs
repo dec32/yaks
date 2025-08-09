@@ -10,7 +10,7 @@ use tokio::fs;
 use ustr::Ustr;
 
 use crate::{
-    API_BASE, BRWOSE_INTERVAL, POST_BROWSERS, UserID, client,
+    API_BASE, BROWSE_INTERVAL, POST_BROWSERS, UserID, client,
     post::{Post, Profile},
 };
 
@@ -70,7 +70,7 @@ pub fn collect_files(
                         errors.send(e).await.unwrap();
                     }
                 }
-                tokio::time::sleep(BRWOSE_INTERVAL).await;
+                tokio::time::sleep(BROWSE_INTERVAL).await;
             }
         });
     }
@@ -93,7 +93,10 @@ async fn browse(
 
     #[derive(Debug, Deserialize)]
     struct Preview<'body> {
-        #[serde(rename = "name")]
+        #[serde(rename = "type")]
+        typ: Ustr,
+        /// some uploaded files don't have an original filename
+        #[serde(default, rename = "name")]
         filename: &'body str,
         path: &'body str,
         server: Ustr,
@@ -118,10 +121,12 @@ async fn browse(
             filename: name,
             path,
             server,
+            ..
         },
     ) in payload
         .previews
         .iter()
+        .filter(|p| p.typ == "thumbnail")
         .enumerate()
     {
         let url = format!("{server}/data{path}").into_boxed_str();

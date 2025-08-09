@@ -2,12 +2,14 @@ use std::{result, sync::OnceLock, time::Duration};
 
 use reqwest::{Client, ClientBuilder};
 
+mod conf;
 mod engine;
 mod file;
 mod post;
 mod worker;
 
 // re-exports
+pub use conf::Conf;
 pub use engine::Engine;
 pub use file::{File, FileID};
 pub use post::{Post, PostID, Profile};
@@ -17,7 +19,9 @@ use ustr::Ustr;
 pub(crate) const API_BASE: &str = "https://kemono.cr/api/v1";
 pub(crate) const TIMEOUT: Duration = Duration::from_secs(30);
 pub(crate) const SCRAPE_INTERVAL: Duration = Duration::from_millis(500);
-pub(crate) const BRWOSE_INTERVAL: Duration = Duration::from_millis(500);
+pub(crate) const BROWSE_INTERVAL: Duration = Duration::from_millis(500);
+pub(crate) const BROWSE_RETRY_AFTER: Duration = Duration::from_secs(120);
+pub(crate) const BROWSE_RETRY_TIMES: u8 = 3;
 pub(crate) const POST_BROWSERS: usize = 5;
 
 // static

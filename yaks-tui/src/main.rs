@@ -21,7 +21,7 @@ async fn main() -> anyhow::Result<()> {
         out,
         template,
         workers,
-    } = Args::from_env()?;
+    } = Args::from_conf_then_env().await?;
 
     // tui
     let mut files = HashMap::new();
