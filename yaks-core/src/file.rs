@@ -72,7 +72,7 @@ pub fn collect_files(
                         errors.send_or_panic(e).await;
                     }
                 }
-                tokio::time::sleep(BROWSE_INTERVAL).await;
+                tokio::time::sleep(BROWSE_INTERVAL.get()).await;
             }
         });
     }
