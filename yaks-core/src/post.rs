@@ -8,7 +8,7 @@ use yaks_common::Range;
 use crate::{API_BASE, BROWSE_RETRY_AFTER, BROWSE_RETRY_TIMES, SCRAPE_INTERVAL, UserID, client};
 
 pub fn parse_url(url: Leak<str>) -> anyhow::Result<(&'static str, UserID)> {
-    let split = url.split("/").collect::<Vec<_>>();
+    let split = url.split('?').next().unwrap().split('/').collect::<Vec<_>>();
     let (platform, user_id) = if split.len() == 2 {
         (split[0].to_string().leak(), split[1].to_string().leak())
     } else {
