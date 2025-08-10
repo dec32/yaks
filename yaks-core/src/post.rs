@@ -2,15 +2,19 @@ use leaky::Leak;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
-use ustr::Ustr;
 use yaks_common::Range;
 
 use crate::{API_BASE, BROWSE_RETRY_AFTER, BROWSE_RETRY_TIMES, SCRAPE_INTERVAL, UserID, client};
 
-pub fn parse_url(url: Leak<str>) -> anyhow::Result<(&'static str, UserID)> {
-    let split = url.split('?').next().unwrap().split('/').collect::<Vec<_>>();
+pub fn parse_url(url: Leak<str>) -> anyhow::Result<(Leak<str>, UserID)> {
+    let split = url
+        .split("?")
+        .next()
+        .unwrap()
+        .split("/")
+        .collect::<Vec<_>>();
     let (platform, user_id) = if split.len() == 2 {
-        (split[0].to_string().leak(), split[1].to_string().leak())
+        (split[0], split[1])
     } else {
         let Some(index) = split.iter().copied().position(|s| s == "user") else {
             return Err(anyhow::anyhow!("Cannot parse URL `{}`", url));
@@ -18,10 +22,7 @@ pub fn parse_url(url: Leak<str>) -> anyhow::Result<(&'static str, UserID)> {
         if index >= split.len() {
             return Err(anyhow::anyhow!("Cannot parse URL `{}`", url));
         }
-        (
-            split[index - 1].to_string().leak(),
-            split[index + 1].to_string().leak(),
-        )
+        (split[index - 1], split[index + 1])
     };
     Ok((platform, user_id))
 }
@@ -29,14 +30,14 @@ pub fn parse_url(url: Leak<str>) -> anyhow::Result<(&'static str, UserID)> {
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub struct Profile {
     #[serde(rename = "name")]
-    pub nickname: Ustr,
+    pub nickname: Leak<str>,
     #[allow(unused)]
     #[serde(rename = "public_id")]
-    pub username: Ustr,
+    pub username: Leak<str>,
 }
 
 /// Get the username of the artist
-pub async fn fetch_profile(platform: &'static str, user_id: UserID) -> anyhow::Result<Profile> {
+pub async fn fetch_profile(platform: Leak<str>, user_id: UserID) -> anyhow::Result<Profile> {
     let profile = client()
         .get(format!("{API_BASE}/{platform}/user/{user_id}/profile"))
         .send()
@@ -58,7 +59,7 @@ pub struct Post {
 pub type PostID = u64;
 
 pub async fn scrape_posts(
-    platform: &'static str,
+    platform: Leak<str>,
     user_id: UserID,
     range: Range,
 ) -> anyhow::Result<Vec<Post>> {

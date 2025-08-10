@@ -1,5 +1,6 @@
 use std::{result, sync::OnceLock, time::Duration};
 
+use leaky::Leak;
 use reqwest::{Client, ClientBuilder};
 
 mod conf;
@@ -32,7 +33,7 @@ pub(crate) fn client() -> &'static Client {
 
 // types
 pub type Result<T, E = crate::Error> = result::Result<T, E>;
-pub type UserID = &'static str;
+pub type UserID = Leak<str>;
 
 /// Event sent to the UI, by the engine, not the submodules.
 ///

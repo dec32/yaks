@@ -38,7 +38,7 @@ impl File {
 
 pub fn collect_files(
     posts: Vec<Post>,
-    platform: &'static str,
+    platform: Leak<str>,
     user_id: UserID,
     profile: Profile,
     out: Leak<Path>,
@@ -81,7 +81,7 @@ pub fn collect_files(
 
 async fn browse(
     Post { id, title }: Post,
-    platform: &'static str,
+    platform: Leak<str>,
     user_id: UserID,
     profile: Profile,
     out: Leak<Path>,
@@ -97,10 +97,11 @@ async fn browse(
     struct Preview<'body> {
         #[serde(rename = "type")]
         typ: Ustr,
-        /// some uploaded files don't have an original filename
         #[serde(default, rename = "name")]
         filename: &'body str,
+        #[serde(default)]
         path: &'body str,
+        #[serde(default)]
         server: Ustr,
     }
     if template.starts_with("/") {
@@ -120,22 +121,22 @@ async fn browse(
     for (
         index,
         Preview {
-            filename: name,
+            filename,
             path,
             server,
             ..
         },
     ) in payload
         .previews
-        .iter()
+        .into_iter()
         .filter(|p| p.typ == "thumbnail")
         .enumerate()
     {
         let url = format!("{server}/data{path}").into_boxed_str();
-        let name = PathBuf::from(name.replace("/", "／"));
+        let filename = PathBuf::from(filename.replace("/", "／"));
         let mut location = template.to_string();
         if !location.ends_with("{filename}") {
-            if let Some(ext) = name.extension() {
+            if let Some(ext) = filename.extension() {
                 location.push('.');
                 location.push_str(ext.to_string_lossy().as_ref());
             }
@@ -148,7 +149,7 @@ async fn browse(
             .replace("{post_id}", &id.to_string())
             .replace("{index}", &index.to_string())
             .replace("{title}", &title)
-            .replace("{filename}", name.to_string_lossy().as_ref());
+            .replace("{filename}", filename.to_string_lossy().as_ref());
 
         let mut dest = out.join(&location);
         if fs::try_exists(&dest).await? {
