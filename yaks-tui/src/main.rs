@@ -132,7 +132,7 @@ async fn main() -> anyhow::Result<()> {
                 Event::Clear => {
                     if browse_errors.is_empty() && download_errors.is_empty() {
                         download.set_style(style::finish());
-                        download.finish_with_message("Clear");
+                        download.finish_with_message("Clear :)");
                     } else {
                         download.set_style(style::finish_with_error());
                         download.finish_with_message("Failed to download all files");

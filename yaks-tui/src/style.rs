@@ -58,16 +58,16 @@ progress_style! {
 progress_style! {
     error,
     "{spinner:.red} [{pos}/{len}] {msg}",
-    "!!"
+    "◴◷◶◵ "
 }
 progress_style! {
     finish_with_error,
-    "{spinner:.red} {msg} :(",
+    "{spinner:.red} {msg}",
     "!!"
 }
 progress_style! {
     finish,
-    "{spinner:.green} {msg} :)",
+    "{spinner:.green} {msg}",
     "✓✓"
 }
 // for progress bars
