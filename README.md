@@ -1,4 +1,4 @@
-# YaST: Yet-another Kemono Scraper
+# YaKS: Yet-another Kemono Scraper
 
 It downloads content from Kemono.
 
