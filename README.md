@@ -53,7 +53,7 @@ yaks $url --jobs 255
 
 ## You say I need to type the arguments every single time?
 
-No, you can create the configuration file `yaks/conf.toml` under the data folder[^2] and save your prefered arguments there:
+No, you can create the configuration file `yaks/conf.toml` under the config folder[^2] and save your prefered arguments there:
 
 ```toml
 # conf.toml
@@ -67,4 +67,4 @@ jobs = 16
 I am working on it.
 
 [^1]: `C:\Users\{YOUR_USERNAME}\Downloads` on Windows and `~/Downloads` on macOS and Linux.
-[^2]: `C:\Users\{YOUR_USERNAME}\AppData\Roaming` on Windows, `~/.local/share` on Linux and `~/Library/Application Support` on macOS
+[^2]: `C:\Users\{YOUR_USERNAME}\AppData\Roaming` on Windows, `~/.config` on Linux and `~/Library/Application Support` on macOS

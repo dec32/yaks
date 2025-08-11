@@ -11,7 +11,7 @@ pub struct Conf {
 
 impl Conf {
     pub async fn load() -> anyhow::Result<Self> {
-        let conf_path = dirs_next::data_dir()
+        let conf_path = dirs_next::config_dir()
             .ok_or(anyhow::anyhow!("Can not locate conf path."))?
             .join("yaks")
             .join("conf.toml");
