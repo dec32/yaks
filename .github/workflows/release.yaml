@@ -11,6 +11,7 @@ jobs:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -21,26 +22,28 @@ jobs:
             target: x86_64-pc-windows-msvc
             filename: yaks-windows-x86_64
             extension: .exe
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            filename: yaks-macos-aarch64
+            extension: ''
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly
+          toolchain: stable
+          target: ${{ matrix.target }}
 
       - name: Build with Cargo
-        run: cargo build --release --package yaks-tui
+        run: cargo build --release --package yaks-tui --target ${{ matrix.target }}
 
-      - name: Rename executable on Linux
-        if: runner.os == 'Linux'
-        run: mv target/release/yaks-tui ${{ matrix.filename }}${{ matrix.extension }}
-      
-      - name: Rename executable on Windows
-        if: runner.os == 'Windows'
-        run: move target\release\yaks-tui.exe ${{ matrix.filename }}${{ matrix.extension }}
+      - name: Rename executable
+        shell: bash
+        run: |
+          mv target/${{ matrix.target }}/release/yaks-tui${{ matrix.extension }} ${{ matrix.filename }}${{ matrix.extension }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -66,12 +69,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release delete nightly --cleanup-tag --yes || true
 
-      - name: Create new release
-        id: create_release
-        uses: softprops/action-gh-release@v1
+      - name: Create new nightly release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: nightly
           name: Nightly Build
           draft: false
-          prerelease: false
+          prerelease: true
           files: artifacts/**/*
