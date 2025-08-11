@@ -4,14 +4,7 @@ import { Input, Jobs, Range, Process, Downloader } from "component.slint";
 
 export component MainWindow inherits Window {
     title: "YAKS";
-    callback download(
-        link: string,
-        out: string,
-        template: string,
-        from: string,
-        to: string,
-        workers: int,
-    );
+    callback download(link: string, out: string, format: string, from: string, to: string, workers: int, );
     // main layout
     VerticalBox {
         padding-top: 35px;
@@ -19,16 +12,20 @@ export component MainWindow inherits Window {
         // url input
         Input {
             desc: "Artist:";
-            link := LineEdit { placeholder-text: "Also accepts the format {platform}/{user_id} (e.g. fanbox/123456)"; }
-            jobs := Jobs {}
+            link := LineEdit {
+                placeholder-text: "Also accepts the format {platform}/{user_id} (e.g. fanbox/123456)";
+            }
+
+            jobs := Jobs { }
+
             Button {
                 text: "Download";
                 width: 80px;
-                clicked => { 
+                clicked => {
                     root.download(
                         link.text,
                         out.text,
-                        template.text,
+                        format.text,
                         range.max,
                         range.min,
                         jobs.value,
@@ -39,14 +36,23 @@ export component MainWindow inherits Window {
         // save path
         Input {
             desc: "Save to:";
-            out := LineEdit { placeholder-text: "Parent folder"; }
-            Button { text: "Browse..."; }
+            out := LineEdit {
+                placeholder-text: "Parent folder";
+            }
+
+            Button {
+                text: "Browse...";
+            }
+
             Text {
                 text: "/";
                 vertical-alignment: center;
                 font-size: 18px;
             }
-            template := LineEdit { placeholder-text: "Use '/' to create sub-folders"; }
+
+            format := LineEdit {
+                placeholder-text: "Use '/' to create sub-folders";
+            }
         }
         // filters (range and so on)
         Input {
@@ -54,7 +60,8 @@ export component MainWindow inherits Window {
             Rectangle {
                 horizontal-stretch: 1;
             }
-            range := Range {}
+
+            range := Range { }
         }
         // general process
         Process {
@@ -70,6 +77,7 @@ export component MainWindow inherits Window {
                 cur: 13;
                 total: 80;
             }
+
             Downloader {
                 left-text: "123456_1.webp";
                 right-text: "545 KiB/s";

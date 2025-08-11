@@ -19,7 +19,7 @@ impl Engine {
         url: Leak<str>,
         range: Range,
         out: Leak<Path>,
-        template: Leak<str>,
+        fmt: Leak<str>,
         workers: u8,
     ) -> Receiver<crate::Result<Event>> {
         // event chann (for TUI/GUI)
@@ -67,7 +67,7 @@ impl Engine {
                 user_id,
                 profile,
                 out,
-                template,
+                fmt,
                 error_tx.clone(),
             );
             let files = listen_files(files_rx, events.clone());

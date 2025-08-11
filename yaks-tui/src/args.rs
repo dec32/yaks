@@ -9,7 +9,7 @@ pub struct Args {
     pub url: Leak<str>,
     pub range: Range,
     pub out: Leak<Path>,
-    pub template: Leak<str>,
+    pub format: Leak<str>,
     pub workers: u8,
 }
 
@@ -27,7 +27,7 @@ impl Args {
                 "Can not locate the default download folder"
             ))?
             .into();
-        let template = conf.template.unwrap_or(args.template).into();
+        let format = conf.format.unwrap_or(args.format).into();
 
         let workers = conf.jobs.unwrap_or(args.jobs);
 
@@ -43,7 +43,7 @@ impl Args {
             url,
             range,
             out,
-            template,
+            format,
             workers,
         };
         Ok(args)
@@ -64,9 +64,9 @@ struct RawArgs {
     /// Output directory for downloaded files [default: $HOME/Downloads]
     #[arg(short, long)]
     out: Option<PathBuf>,
-    /// Filename template for downloaded files
+    /// Filename format for downloaded files
     #[arg(short, long, default_value = "{nickname}/{post_id}_{index}")]
-    template: String,
+    format: String,
     /// Maximum amount of parallel jobs
     #[arg(short, long, default_value = "5")]
     jobs: u8,

@@ -18,7 +18,7 @@ async fn main() -> anyhow::Result<()> {
         url,
         range,
         out,
-        template,
+        format,
         workers,
     } = Args::from_conf_then_env().await?;
 
@@ -32,7 +32,7 @@ async fn main() -> anyhow::Result<()> {
 
     // let the engine run
     let engine = Engine::default();
-    let rx = engine.start(url, range, out, template, workers);
+    let rx = engine.start(url, range, out, format, workers);
 
     // create the top banners
     mp.set_draw_target(ProgressDrawTarget::hidden());

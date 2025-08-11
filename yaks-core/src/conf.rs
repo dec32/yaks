@@ -5,7 +5,7 @@ use serde::Deserialize;
 #[derive(Default, Deserialize)]
 pub struct Conf {
     pub out: Option<PathBuf>,
-    pub template: Option<String>,
+    pub format: Option<String>,
     pub jobs: Option<u8>,
 }
 

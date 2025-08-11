@@ -21,7 +21,7 @@ yaks $url
 
 to download all the files from an artist.
 
-You can filter out posts by their IDs using `--range`/`-r`
+You can filter out posts by their IDs using `--range`
 
 ```Bash
 # Ranges are left-closed, like [a, b)
@@ -32,11 +32,11 @@ yaks $url --range 12345..67890
 
 By default the files are saved to the download folder[^1], named as `{post_id}_{index}` and go into a folder named by the artist's `{nickname}`.
 
-To save the files elsewhere and arrange them differently, use `--out`/`-o` and `--template`/`-t`:
+To save the files elsewhere and arrange them differently, use `--out` and `--format`:
 
 ```Bash
 # use `/` to create sub-folders
-yaks $url --out /some/other/place --template {username}/{title}/{filename}
+yaks $url --out /some/other/place --format {username}/{title}/{filename}
 ```
 
 Supported placeholders are:
@@ -44,7 +44,7 @@ Supported placeholders are:
 - `{post_id}` and `{title}` of posts
 - `{filename}` and `{index}` of files
 
-You probably don't need to adjust the level of concurrency, but `--jobs`/`-j` controls that.
+You probably don't need to adjust the level of concurrency, but `--jobs` controls that.
 
 ```Bash
 # My internet is super fast and I am not afraid of 429 Too Many Request.
@@ -58,7 +58,7 @@ No, you can create the configuration file `yaks/conf.toml` under the data folder
 ```toml
 # conf.toml
 out = "/some/other/place"
-template = "{username}/{title}/{filename}"
+format = "{username}/{title}/{filename}"
 jobs = 16
 ```
 

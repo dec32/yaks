@@ -42,7 +42,7 @@ pub fn collect_files(
     user_id: UserID,
     profile: Profile,
     out: Leak<Path>,
-    template: Leak<str>,
+    format: Leak<str>,
     errors: Sender<crate::Error>,
 ) -> Receiver<Vec<File>> {
     let (tx, rx) = async_channel::unbounded();
@@ -63,7 +63,7 @@ pub fn collect_files(
         tokio::spawn(async move {
             while let Ok(post) = posts.recv().await {
                 let id = post.id;
-                match browse(post, platform, user_id, profile, out, template).await {
+                match browse(post, platform, user_id, profile, out, format).await {
                     Ok(files) => {
                         tx.send_or_panic(files).await;
                     }
@@ -85,7 +85,7 @@ async fn browse(
     user_id: UserID,
     profile: Profile,
     out: Leak<Path>,
-    template: Leak<str>,
+    format: Leak<str>,
 ) -> anyhow::Result<Vec<File>> {
     #[derive(Debug, Deserialize)]
     #[serde(bound = "'de: 'body")]
@@ -104,8 +104,8 @@ async fn browse(
         #[serde(default)]
         server: Ustr,
     }
-    if template.starts_with("/") {
-        panic!("illegal template {template}");
+    if format.starts_with("/") {
+        panic!("illegal format {format}");
     }
     let url = format!("{API_BASE}/{platform}/user/{user_id}/post/{id}");
     let bytes = client()
@@ -134,7 +134,7 @@ async fn browse(
     {
         let url = format!("{server}/data{path}").into_boxed_str();
         let filename = PathBuf::from(filename.replace("/", "／"));
-        let mut location = template.to_string();
+        let mut location = format.to_string();
         if !location.ends_with("{filename}") {
             if let Some(ext) = filename.extension() {
                 location.push('.');
