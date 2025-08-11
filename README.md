@@ -6,8 +6,6 @@ It downloads content from Kemono.
 [![[DOWNLOAD]](https://img.shields.io/badge/DOWNLOAD-macOS--aarch64-D2D3D4)](https://github.com/dec32/yaks/releases/download/nightly/yaks-macos-aarch64)  
 [![[DOWNLOAD]](https://img.shields.io/badge/DOWNLOAD-Linux--x86__x64-F2E15D)](https://github.com/dec32/yaks/releases/download/nightly/yaks-linux-x86_64)  
 
-
-
 ## Why another one?
 
 The popular ones do not support arranging files into different folders with custom names, have laggy and buggy interfaces and are kinda slow.
@@ -17,7 +15,9 @@ The popular ones do not support arranging files into different folders with cust
 Just use the command:
 
 ```Bash
-yaks $URL
+# Also accepts the format {platform}/{user_id}
+# e.g. fanbox/123456
+yaks $url
 ```
 
 to download all the files from an artist.
@@ -25,36 +25,37 @@ to download all the files from an artist.
 You can filter out posts by their IDs using `--range`/`-r`
 
 ```Bash
-# The ranges are left-closed, like [a, b)
-yaks $URL --range ..67890
-yaks $URL --range 12345..
-yaks $URL --range 12345..67890
+# Ranges are left-closed, like [a, b)
+yaks $url --range ..67890
+yaks $url --range 12345..
+yaks $url --range 12345..67890
 ```
 
-By default the files are saved to `$HOME/Downloads`, named as `{post_id}_{index}` (extentions are automatically handled) and goes in to a folder named by the artist's nickname.
+By default the files are saved to `$HOME/Downloads`, named as `{post_id}_{index}` (extentions are automatically handled) and go into a folder named by the artist's `{nickname}`.
 
 If you want to save the files elsewhere, use `--out`/`-o`:
 
 ```Bash
-yaks $URL --out /i/want/them/saved/here
+yaks $url --out /i/want/them/saved/here
 ```
 
-If you want name and arrange the files differently, use `--template`/`-t`:
+If you want to name and arrange the files differently, use `--template`/`-t`:
 
 ```Bash
-yaks $URL --template {nickname}/{title}_{filename}
+# use `/` to create sub-folders
+yaks $url --template {nickname}/{title}_{filename}
 ```
 
 The supported placeholders are:
-- `nickname`, `username` and `user_id` for artists
-- `post_id` and `title` for posts
-- `filename` and `index` for files
+- `{nickname}`, `{username}` and `{user_id}` for artists
+- `{post_id}` and `{title}` for posts
+- `{filename}` and `{index}` for files
 
 You probably don't need to adjust the level of concurrency, but `--jobs`/`-j` controls that.
 
 ```Bash
 # My internet is super fast and I am not afraid of 429 Too Many Request.
-yaks $URL --j255
+yaks $url --j255
 ```
 
 ## You say I need to type the arguments every single time?
