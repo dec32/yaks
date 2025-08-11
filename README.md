@@ -15,8 +15,7 @@ The popular ones do not support arranging files into different folders with cust
 Just use the command:
 
 ```Bash
-# Also accepts the format {platform}/{user_id}
-# e.g. fanbox/123456
+# Also accepts the format {platform}/{user_id}. e.g. fanbox/123456
 yaks $url
 ```
 
@@ -31,40 +30,34 @@ yaks $url --range 12345..
 yaks $url --range 12345..67890
 ```
 
-By default the files are saved to `$HOME/Downloads`, named as `{post_id}_{index}` (extentions are automatically handled) and go into a folder named by the artist's `{nickname}`.
+By default the files are saved to the download folder[^1], named as `{post_id}_{index}` and go into a folder named by the artist's `{nickname}`.
 
-If you want to save the files elsewhere, use `--out`/`-o`:
-
-```Bash
-yaks $url --out /i/want/them/saved/here
-```
-
-If you want to name and arrange the files differently, use `--template`/`-t`:
+To save the files elsewhere and arrange them differently, use `--out`/`-o` and `--template`/`-t`:
 
 ```Bash
 # use `/` to create sub-folders
-yaks $url --template {nickname}/{title}_{filename}
+yaks $url --out /some/other/place --template {username}/{title}/{filename}
 ```
 
-The supported placeholders are:
-- `{nickname}`, `{username}` and `{user_id}` for artists
-- `{post_id}` and `{title}` for posts
-- `{filename}` and `{index}` for files
+Supported placeholders are:
+- `{nickname}`, `{username}` and `{user_id}` of artists
+- `{post_id}` and `{title}` of posts
+- `{filename}` and `{index}` of files
 
 You probably don't need to adjust the level of concurrency, but `--jobs`/`-j` controls that.
 
 ```Bash
 # My internet is super fast and I am not afraid of 429 Too Many Request.
-yaks $url --j255
+yaks $url --jobs 255
 ```
 
 ## You say I need to type the arguments every single time?
 
-No, you can create a configuration file called `conf.toml` in `%APPDATA%/yaks` and save your prefered arguments there:
+No, you can create the configuration file `yaks/conf.toml` under the data folder[^2] and save your prefered arguments there:
 
 ```toml
 # conf.toml
-out = "/my/unholy/vault"
+out = "/some/other/place"
 template = "{username}/{title}/{filename}"
 jobs = 16
 ```
@@ -72,3 +65,6 @@ jobs = 16
 ## But I want a GUI
 
 I am working on it.
+
+[^1]: `C:\Users\{YOUR_USERNAME}\Downloads` on Windows and `~/Downloads` on macOS and Linux.
+[^2]: `C:\Users\{YOUR_USERNAME}\AppData\Roaming` on Windows, `~/.local/share` on Linux and `~/Library/Application Support` on macOS
