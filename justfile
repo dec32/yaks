@@ -1,6 +1,8 @@
-fmt *ARGS:
+fmt:
     cargo +nightly fmt --all
-gui *ARGS:
-    cargo run --package yaks-gui
+tui *args:
+    cargo run --package yaks-tui -- {{args}}
+gui *args:
+    cargo run --package yaks-gui -- {{args}}
 test:
-    cargo run --package yaks-tui -- patreon/470718 --range 67928516..
+    just tui patreon/470718 --range 67928516..

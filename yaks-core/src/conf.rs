@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
 pub struct Conf {
     pub out: Option<PathBuf>,
     pub template: Option<String>,
@@ -15,6 +15,9 @@ impl Conf {
             .ok_or(anyhow::anyhow!("Can not locate conf path."))?
             .join("yaks")
             .join("conf.toml");
+        if !conf_path.try_exists()? {
+            return Ok(Conf::default())
+        }
         let conf_str = tokio::fs::read_to_string(conf_path).await?;
         let conf = toml::from_str(&conf_str)?;
         Ok(conf)
