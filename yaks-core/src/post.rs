@@ -1,3 +1,4 @@
+use anyhow::bail;
 use leaky::Leak;
 use reqwest::StatusCode;
 use serde::Deserialize;
@@ -17,10 +18,10 @@ pub fn parse_url(url: Leak<str>) -> anyhow::Result<(Leak<str>, UserID)> {
         (split[0], split[1])
     } else {
         let Some(index) = split.iter().copied().position(|s| s == "user") else {
-            return Err(anyhow::anyhow!("Cannot parse URL `{}`", url));
+            bail!("Cannot parse URL `{}`", url);
         };
         if index >= split.len() {
-            return Err(anyhow::anyhow!("Cannot parse URL `{}`", url));
+            bail!("Cannot parse URL `{}`", url);
         }
         (split[index - 1], split[index + 1])
     };

@@ -5,7 +5,7 @@ use std::{
     u64,
 };
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Range {
@@ -48,7 +48,7 @@ impl FromStr for Range {
                 };
                 (start, end)
             }
-            _ => return Err(anyhow::anyhow!("Invalid range format")),
+            _ => bail!("Invalid range format"),
         };
         Ok(Range { start, end })
     }

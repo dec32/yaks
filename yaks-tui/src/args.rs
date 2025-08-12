@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use anyhow::anyhow;
 use clap::Parser;
 use leaky::Leak;
 use yaks_common::Range;
@@ -23,9 +24,7 @@ impl Args {
             .out
             .or(args.out)
             .or_else(|| dirs_next::download_dir())
-            .ok_or(anyhow::anyhow!(
-                "Can not locate the default download folder"
-            ))?
+            .ok_or(anyhow!("Can not locate the default download folder"))?
             .into();
         let format = conf.format.unwrap_or(args.format).into();
 

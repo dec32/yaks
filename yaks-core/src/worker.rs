@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use async_channel::{Receiver, Sender};
 use async_stream::try_stream;
 use futures::{Stream, StreamExt};
@@ -78,7 +79,7 @@ fn download(file: File) -> impl Stream<Item = anyhow::Result<Prog>> {
             .error_for_status()?;
         let total = resp
             .content_length()
-            .ok_or(anyhow::anyhow!("content-length is missing"))?;
+            .ok_or(anyhow!("content-length is missing"))?;
         yield Prog::Init(total);
         // download by chunks
         loop {
