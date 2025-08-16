@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = [ "yaks-common","yaks-core", "yaks-gui", "yaks-tui"]
+members = ["yaks-common", "yaks-core", "yaks-gui", "yaks-tui"]
 
 [workspace.dependencies]
 anyhow = "1.0.98"
@@ -11,12 +11,13 @@ clap = { version = "4.5.42", features = ["derive"] }
 derive_more = { version = "2", features = ["display", "deref"] }
 dirs-next = "2.0.0"
 env_logger = "0.11.8"
+flate2 = "1.1.2"
 futures = "0.3.31"
 indicatif = { version = "0.17", features = ["in_memory"] }
 leaky.git = "https://github.com/dec32/leaky.git"
 log = "0.4.27"
 rand = "0.9.2"
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { version = "0.12", features = ["json", "stream", "cookies"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_with = { version = "3.14.0", features = ["json"] }
@@ -24,4 +25,3 @@ tokio = { version = "1.0", features = ["fs", "macros", "rt-multi-thread"] }
 toml = "0.9.5"
 thiserror = "2.0.12"
 ustr = { version = "1.1.0", features = ["serde"] }
-

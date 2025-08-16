@@ -44,6 +44,7 @@ async fn handle(rx: Receiver<crate::Result<Event>>, ui: MainWindow) {
                 Event::Clear => todo!(),
             },
             Err(e) => match e {
+                Error::Cookies(e) => todo!(),
                 Error::Profile(e) => todo!(),
                 Error::Scrape(e) => todo!(),
                 Error::Browse(_, e) => todo!(),

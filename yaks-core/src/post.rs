@@ -3,7 +3,7 @@ use leaky::Leak;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
-use yaks_common::Range;
+use yaks_common::{Range, ResponseExt};
 
 use crate::{API_BASE, BROWSE_RETRY_AFTER, BROWSE_RETRY_TIMES, SCRAPE_INTERVAL, UserID, client};
 
@@ -44,7 +44,7 @@ pub async fn fetch_profile(platform: Leak<str>, user_id: UserID) -> anyhow::Resu
         .send()
         .await?
         .error_for_status()?
-        .json::<Profile>()
+        .sneaky_json::<Profile>()
         .await?;
     Ok(profile)
 }
@@ -90,14 +90,14 @@ pub async fn scrape_posts(
                 let resp = client().get(&url).send().await?;
                 if resp.status() == StatusCode::TOO_MANY_REQUESTS {
                     if retry >= BROWSE_RETRY_TIMES {
-                        break resp.error_for_status()?.json().await?;
+                        break resp.error_for_status()?.sneaky_json().await?;
                     } else {
                         retry += 1;
                         tokio::time::sleep(BROWSE_RETRY_AFTER).await;
                         continue;
                     }
                 } else {
-                    break resp.error_for_status()?.json().await?;
+                    break resp.error_for_status()?.sneaky_json().await?;
                 };
             }
         };
