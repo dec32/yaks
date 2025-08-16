@@ -5,7 +5,7 @@ use leaky::Leak;
 use yaks_common::{Range, SenderExt};
 
 use crate::{
-    Event, File, FileID, HOMEPAGE, client, file,
+    Event, File, FileID, file,
     post::{self},
     worker::{self, Prog},
 };
@@ -37,14 +37,6 @@ impl Engine {
                     return;
                 }
             };
-            // getting cookie
-            match client().get(HOMEPAGE).send().await {
-                Ok(_) => (),
-                Err(e) => {
-                    error_tx.send_or_panic(crate::Error::Cookies(e)).await;
-                    return;
-                }
-            }
             // fetching profile
             let profile = match post::fetch_profile(platform, user_id).await {
                 Ok(profile) => profile,

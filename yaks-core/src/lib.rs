@@ -20,7 +20,6 @@ pub use post::{Post, PostID, Profile};
 use yaks_common::PoliteDuration;
 
 // consts
-pub(crate) const HOMEPAGE: &str = "https://kemono.cr";
 pub(crate) const API_BASE: &str = "https://kemono.cr/api/v1";
 pub(crate) const TIMEOUT: Duration = Duration::from_secs(30);
 pub(crate) const SCRAPE_INTERVAL: Duration = Duration::from_millis(500);
@@ -34,7 +33,6 @@ pub(crate) fn client() -> &'static Client {
     static INSTANCE: OnceLock<Client> = OnceLock::new();
     INSTANCE.get_or_init(|| {
         ClientBuilder::new()
-            // .cookie_store(true)
             .timeout(TIMEOUT)
             .default_headers(default_headers())
             .build()
@@ -90,8 +88,6 @@ pub enum Event {
 /// UI should decide how to represent the metadata within
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error(transparent)]
-    Cookies(reqwest::Error),
     #[error(transparent)]
     Profile(anyhow::Error),
     #[error(transparent)]

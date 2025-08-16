@@ -141,11 +141,6 @@ async fn main() -> anyhow::Result<()> {
                 }
             },
             Err(e) => match e {
-                Error::Cookies(e) => {
-                    fetch_profile.set_style(style::finish_with_error());
-                    fetch_profile.finish_with_message(format!("Failed to fetch cookie ({e})"));
-                    break;
-                }
                 Error::Profile(e) => {
                     fetch_profile.set_style(style::finish_with_error());
                     fetch_profile.finish_with_message(format!("Failed to fetch profile ({e})"));
