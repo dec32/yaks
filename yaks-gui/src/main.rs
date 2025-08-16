@@ -8,6 +8,7 @@ use yaks_core::{Engine, Event};
 pub type Result<T, E = crate::Error> = result::Result<T, E>;
 pub type Error = yaks_core::Error;
 
+#[allow(unused)]
 #[tokio::main]
 async fn main() {
     let ui = MainWindow::new().unwrap();
@@ -28,6 +29,7 @@ async fn main() {
     ui.run().unwrap();
 }
 
+#[allow(unused)]
 async fn handle(rx: Receiver<crate::Result<Event>>, ui: MainWindow) {
     while let Ok(event) = rx.recv().await {
         match event {
