@@ -73,12 +73,12 @@ progress_style! {
 // for progress bars
 progress_style! {
     enqueued,
-    "{spinner:.dim} {msg:<20} [{elapsed_precise}] [{wide_bar:.dim/dim}]",
+    "{spinner:.dim} {msg:<20} [{elapsed_precise}] [{bar:32.dim/dim}]",
     "◜◠◝◞◡◟ "
 }
 progress_style! {
     running,
-    "{spinner:.blue} {msg:<20} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})"
+    "{spinner:.blue} {msg:<20} [{elapsed_precise}] [{bar:32.cyan/blue}] {bytes}/{total_bytes} ({eta})"
 }
 // for speed
 progress_style! {
