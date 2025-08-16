@@ -47,7 +47,8 @@ impl Engine {
             };
             events.send_or_panic(Ok(Event::Profile(profile))).await;
             // scrape all posts
-            let posts = match post::scrape_posts(platform, user_id, range).await {
+            let posts = match post::scrape_posts(platform, user_id, profile.post_count, range).await
+            {
                 Ok(posts) => {
                     events.send_or_panic(Ok(Event::Posts(posts.len()))).await;
                     posts

@@ -9,7 +9,7 @@ use leaky::Leak;
 use serde::Deserialize;
 use tokio::fs;
 use ustr::Ustr;
-use yaks_common::SenderExt;
+use yaks_common::{ResponseExt, SenderExt};
 
 use crate::{
     API_BASE, BROWSE_INTERVAL, POST_BROWSERS, UserID, client,
@@ -88,19 +88,18 @@ async fn browse(
     format: Leak<str>,
 ) -> anyhow::Result<Vec<File>> {
     #[derive(Debug, Deserialize)]
-    #[serde(bound = "'de: 'body")]
-    struct Payload<'body> {
-        previews: Vec<Preview<'body>>,
+    struct Payload {
+        previews: Vec<Preview>,
     }
 
     #[derive(Debug, Deserialize)]
-    struct Preview<'body> {
+    struct Preview {
         #[serde(rename = "type")]
         typ: Ustr,
         #[serde(default, rename = "name")]
-        filename: &'body str,
+        filename: String,
         #[serde(default)]
-        path: &'body str,
+        path: String,
         #[serde(default)]
         server: Ustr,
     }
@@ -108,14 +107,13 @@ async fn browse(
         panic!("illegal format {format}");
     }
     let url = format!("{API_BASE}/{platform}/user/{user_id}/post/{id}");
-    let bytes = client()
+    let payload = client()
         .get(&url)
         .send()
         .await?
         .error_for_status()?
-        .bytes()
+        .sneaky_json::<Payload>()
         .await?;
-    let payload = serde_json::from_slice::<Payload>(&bytes)?;
 
     let mut files = Vec::new();
     for (

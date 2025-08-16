@@ -5,7 +5,9 @@ use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
 use yaks_common::{Range, ResponseExt};
 
-use crate::{API_BASE, BROWSE_RETRY_AFTER, BROWSE_RETRY_TIMES, SCRAPE_INTERVAL, UserID, client};
+use crate::{
+    API_BASE, BROWSE_RETRY_AFTER, BROWSE_RETRY_TIMES, PAGE_SIZE, SCRAPE_INTERVAL, UserID, client,
+};
 
 pub fn parse_url(url: Leak<str>) -> anyhow::Result<(Leak<str>, UserID)> {
     let split = url
@@ -35,6 +37,7 @@ pub struct Profile {
     #[allow(unused)]
     #[serde(rename = "public_id")]
     pub username: Leak<str>,
+    pub post_count: usize,
 }
 
 /// Get the username of the artist
@@ -62,29 +65,14 @@ pub type PostID = u64;
 pub async fn scrape_posts(
     platform: Leak<str>,
     user_id: UserID,
+    post_count: usize,
     range: Range,
 ) -> anyhow::Result<Vec<Post>> {
-    #[derive(Debug, Deserialize)]
-    struct Payload {
-        #[serde(rename = "results")]
-        posts: Vec<Post>,
-        props: Props,
-    }
-
-    #[derive(Debug, Deserialize)]
-    struct Props {
-        #[serde(rename = "limit")]
-        page_size: usize,
-        count: usize,
-    }
     let mut res = Vec::new();
     let mut offset = 0;
     'quit: loop {
-        let url = format!("{API_BASE}/{platform}/user/{user_id}/posts-legacy?o={offset}");
-        let Payload {
-            posts,
-            props: Props { page_size, count },
-        } = {
+        let url = format!("{API_BASE}/{platform}/user/{user_id}/posts?o={offset}");
+        let posts: Vec<Post> = {
             let mut retry = 0;
             loop {
                 let resp = client().get(&url).send().await?;
@@ -111,8 +99,8 @@ pub async fn scrape_posts(
             }
             res.push(post);
         }
-        offset += page_size;
-        if offset > count {
+        offset += PAGE_SIZE;
+        if offset > post_count {
             break;
         }
         tokio::time::sleep(SCRAPE_INTERVAL).await;

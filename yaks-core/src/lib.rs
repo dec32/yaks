@@ -21,6 +21,7 @@ use yaks_common::PoliteDuration;
 
 // consts
 pub(crate) const API_BASE: &str = "https://kemono.cr/api/v1";
+pub(crate) const PAGE_SIZE: usize = 50;
 pub(crate) const TIMEOUT: Duration = Duration::from_secs(30);
 pub(crate) const SCRAPE_INTERVAL: Duration = Duration::from_millis(500);
 pub(crate) const BROWSE_INTERVAL: PoliteDuration = PoliteDuration::from_millis(4000, 10);
