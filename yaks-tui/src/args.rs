@@ -11,7 +11,9 @@ pub struct Args {
     pub range: Range,
     pub out: Leak<Path>,
     pub format: Leak<str>,
+    pub save_text: bool,
     pub workers: u8,
+    pub debug: bool,
 }
 
 impl Args {
@@ -23,27 +25,30 @@ impl Args {
         let out = conf
             .out
             .or(args.out)
-            .or_else(|| dirs_next::download_dir())
+            .or_else(dirs_next::download_dir)
             .ok_or(anyhow!("Can not locate the default download folder"))?
             .into();
         let format = conf.format.unwrap_or(args.format).into();
-
+        let save_text = args.save_text;
         let workers = conf.jobs.unwrap_or(args.jobs);
 
         // only present in args
         let url = args.url.into();
-
         let range = if let Some(range) = args.range {
             range.parse()?
         } else {
             Range::default()
         };
+        let debug = args.debug;
+        // collect
         let args = Args {
             url,
             range,
             out,
             format,
+            save_text,
             workers,
+            debug,
         };
         Ok(args)
     }
@@ -66,7 +71,13 @@ struct RawArgs {
     /// Filename format for downloaded files
     #[arg(short, long, default_value = "{nickname}/{post_id}_{index}")]
     format: String,
+    /// Save the textual content of the post.
+    #[arg(short = 't', long = "text")]
+    save_text: bool,
     /// Maximum amount of parallel jobs
     #[arg(short, long, default_value = "5")]
     jobs: u8,
+    /// Switch to debug mode
+    #[arg(short, long, hide = true)]
+    debug: bool,
 }

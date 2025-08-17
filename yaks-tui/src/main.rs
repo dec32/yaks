@@ -19,8 +19,20 @@ async fn main() -> anyhow::Result<()> {
         range,
         out,
         format,
+        save_text,
         workers,
+        debug,
     } = Args::from_conf_then_env().await?;
+
+    // let the engine run
+    let engine = Engine::default();
+    let rx = engine.start(url, range, out, format, save_text, workers);
+
+    // disable the TUI when debugging
+    if debug {
+        while rx.recv().await.is_ok() {}
+        return Ok(());
+    }
 
     // tui
     let mp = MultiProgress::new();
@@ -29,10 +41,6 @@ async fn main() -> anyhow::Result<()> {
     let mut browse_errors = HashMap::new();
     let mut download_errors = HashMap::new();
     let mut waiting = true;
-
-    // let the engine run
-    let engine = Engine::default();
-    let rx = engine.start(url, range, out, format, workers);
 
     // create the top banners
     mp.set_draw_target(ProgressDrawTarget::hidden());

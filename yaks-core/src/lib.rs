@@ -43,8 +43,13 @@ pub(crate) fn client() -> &'static Client {
 
 fn default_headers() -> HeaderMap {
     let mut headers = HeaderMap::new();
+    headers.insert("User-Agent", HeaderValue::from_static("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"));
     // or you get 403
     headers.insert("Accept", HeaderValue::from_static("text/css"));
+    headers.insert(
+        "Accept-Language",
+        HeaderValue::from_static("en-US,en;q=0.9"),
+    );
     headers
 }
 

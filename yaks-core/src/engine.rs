@@ -20,6 +20,7 @@ impl Engine {
         range: Range,
         out: Leak<Path>,
         fmt: Leak<str>,
+        save_text: bool,
         workers: u8,
     ) -> Receiver<crate::Result<Event>> {
         // event chann (for TUI/GUI)
@@ -68,6 +69,7 @@ impl Engine {
                 profile,
                 out,
                 fmt,
+                save_text,
                 error_tx.clone(),
             );
             let files = listen_files(files_rx, events.clone());

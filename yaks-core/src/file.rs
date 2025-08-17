@@ -7,7 +7,7 @@ use async_channel::{self, Receiver, Sender};
 use derive_more::Deref;
 use leaky::Leak;
 use serde::Deserialize;
-use tokio::fs;
+use tokio::{fs, io::AsyncWriteExt};
 use ustr::Ustr;
 use yaks_common::{ResponseExt, SenderExt};
 
@@ -43,6 +43,7 @@ pub fn collect_files(
     profile: Profile,
     out: Leak<Path>,
     format: Leak<str>,
+    save_text: bool,
     errors: Sender<crate::Error>,
 ) -> Receiver<Vec<File>> {
     let (tx, rx) = async_channel::unbounded();
@@ -63,7 +64,7 @@ pub fn collect_files(
         tokio::spawn(async move {
             while let Ok(post) = posts.recv().await {
                 let id = post.id;
-                match browse(post, platform, user_id, profile, out, format).await {
+                match browse(post, platform, user_id, profile, out, format, save_text).await {
                     Ok(files) => {
                         tx.send_or_panic(files).await;
                     }
@@ -86,10 +87,12 @@ async fn browse(
     profile: Profile,
     out: Leak<Path>,
     format: Leak<str>,
+    save_text: bool,
 ) -> anyhow::Result<Vec<File>> {
     #[derive(Debug, Deserialize)]
     struct Payload {
         previews: Vec<Preview>,
+        post: BrowsablePost,
     }
 
     #[derive(Debug, Deserialize)]
@@ -103,6 +106,14 @@ async fn browse(
         #[serde(default)]
         server: Ustr,
     }
+
+    #[derive(Debug, Deserialize)]
+    struct BrowsablePost {
+        #[serde(default, rename = "content")]
+        text: String,
+    }
+
+    // todo: handle this properly
     if format.starts_with("/") {
         panic!("illegal format {format}");
     }
@@ -115,6 +126,54 @@ async fn browse(
         .sneaky_json::<Payload>()
         .await?;
 
+    // ---------------------------------------------------------
+    // download the textaul content of the post
+    // ---------------------------------------------------------
+    if save_text && !payload.post.text.is_empty() {
+        // save as markdown
+        let text = htmd::convert(&payload.post.text).unwrap_or(payload.post.text);
+        // find the last {post_id}/{title}
+        let post_id_end = format.find("{post_id}").map(|i| i + "{post_id}".len());
+        let title_end = format.find("{title}").map(|i| i + "{title}".len());
+        let end = post_id_end.into_iter().chain(title_end).max();
+
+        let format = if let Some(end) = end {
+            let append = match format[end..].chars().next() {
+                // user arrange posts into separate folders
+                Some('/') => "/post.md",
+                // user arrange posts under one big folder
+                _ => ".md",
+            };
+            let mut format = format[..end].to_string();
+            format.push_str(append);
+            format
+        } else {
+            // post-level meta is missing.
+            let mut format = format.to_string();
+            format.push_str("{post_id}_{title}.md");
+            format
+        };
+
+        let dest = format
+            .replace("{user_id}", &user_id)
+            .replace("{username}", &profile.username)
+            .replace("{nickname}", &profile.nickname)
+            .replace("{post_id}", &id.to_string())
+            .replace("{title}", &title);
+        let dest = out.join(dest);
+        if !fs::try_exists(&dest).await? {
+            let mut dest = {
+                let parent = dest.parent().unwrap();
+                fs::create_dir_all(parent).await?;
+                fs::File::create(dest).await?
+            };
+            dest.write_all(text.as_bytes()).await?;
+        }
+    }
+
+    // ---------------------------------------------------------
+    // collect the files
+    // ---------------------------------------------------------
     let mut files = Vec::new();
     for (
         index,
@@ -133,20 +192,20 @@ async fn browse(
         let url = format!("{server}/data{path}").into_boxed_str();
         let filename = PathBuf::from(filename.replace("/", "／"));
         let mut location = format.to_string();
-        if !location.ends_with("{filename}") {
-            if let Some(ext) = filename.extension() {
-                location.push('.');
-                location.push_str(ext.to_string_lossy().as_ref());
-            }
+        if !location.ends_with("{filename}")
+            && let Some(ext) = filename.extension()
+        {
+            location.push('.');
+            location.push_str(ext.to_string_lossy().as_ref());
         }
         // todo use runtime formatting library
         let location = location
-            .replace("{user_id}", &user_id.to_string())
+            .replace("{user_id}", &user_id)
             .replace("{username}", &profile.username)
             .replace("{nickname}", &profile.nickname)
             .replace("{post_id}", &id.to_string())
-            .replace("{index}", &index.to_string())
             .replace("{title}", &title)
+            .replace("{index}", &index.to_string())
             .replace("{filename}", filename.to_string_lossy().as_ref());
 
         let mut dest = out.join(&location);

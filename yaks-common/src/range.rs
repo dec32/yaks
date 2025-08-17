@@ -2,7 +2,6 @@ use std::{
     cmp::Ordering,
     fmt::{self, Display},
     str::FromStr,
-    u64,
 };
 
 use anyhow::{Result, bail};
