@@ -10,20 +10,20 @@ It downloads content from Kemono.
 
 ## Why another one?
 
-The popular ones do not support arranging files into different folders with custom names, have laggy and buggy interfaces and are kinda slow.
+The popular ones do not support sorting files into different folders with custom names and comes with laggy and buggy interfaces.
 
 ## How to use it?
 
-Just use the command:
+Use command below to download all the files from an artist:
 
 ```Bash
 # Also accepts the format {platform}/{user_id}. e.g. fanbox/123456
 yaks $url
 ```
 
-to download all the files from an artist.
+### Filter
 
-You can filter out posts by their IDs using `--range`
+Filter posts by their IDs using `--range`:
 
 ```Bash
 # Ranges are left-closed, like [a, b)
@@ -31,10 +31,17 @@ yaks $url --range ..67890
 yaks $url --range 12345..
 yaks $url --range 12345..67890
 ```
+Include the textual content as an `.md` file by passing the `--text` flag:
+
+```Bash
+yaks $URL --text
+```
+
+### Sort the files
 
 By default the files are saved to the download folder[^1], named as `{post_id}_{index}` and go into a folder named by the artist's `{nickname}`.
 
-To save the files elsewhere and arrange them differently, use `--out` and `--format`:
+To save the files elsewhere and sort them differently, use `--out` and `--format`:
 
 ```Bash
 # use `/` to create sub-folders
@@ -42,11 +49,14 @@ yaks $url --out /some/other/place --format {username}/{title}/{filename}
 ```
 
 Supported placeholders are:
-- `{nickname}`, `{username}` and `{user_id}` of artists
-- `{post_id}` and `{title}` of posts
-- `{filename}` and `{index}` of files
+- `{nickname}`/`{username}`/`{user_id}` of artists
+- `{post_id}`/`{title}` of posts
+- `{filename}`/`{index}` of files
 
-You probably don't need to adjust the level of concurrency, but `--jobs` controls that.
+
+### Concurrency
+
+You probably don't need to adjust the level of concurrency, but `--jobs` tweaks that.
 
 ```Bash
 # My internet is super fast and I am not afraid of 429 Too Many Request.
