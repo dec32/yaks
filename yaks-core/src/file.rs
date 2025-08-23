@@ -1,7 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{path::Path, sync::Arc};
 
 use async_channel::{self, Receiver, Sender};
 use derive_more::Deref;
@@ -9,7 +6,7 @@ use leaky::Leak;
 use serde::Deserialize;
 use tokio::{fs, io::AsyncWriteExt};
 use ustr::Ustr;
-use yaks_common::{ResponseExt, SenderExt};
+use yaks_common::{ResponseExt, SenderExt, StrExt};
 
 use crate::{
     API_BASE, BROWSE_INTERVAL, POST_BROWSERS, UserID, client,
@@ -84,7 +81,11 @@ async fn browse(
     Post { id, title }: Post,
     platform: Leak<str>,
     user_id: UserID,
-    profile: Profile,
+    Profile {
+        nickname,
+        username,
+        post_count: _,
+    }: Profile,
     out: Leak<Path>,
     format: Leak<str>,
     save_text: bool,
@@ -98,7 +99,7 @@ async fn browse(
     #[derive(Debug, Deserialize)]
     struct Preview {
         #[serde(rename = "type")]
-        typ: Ustr,
+        ty: Ustr,
         #[serde(default, rename = "name")]
         filename: String,
         #[serde(default)]
@@ -117,6 +118,11 @@ async fn browse(
     if format.starts_with("/") {
         panic!("illegal format {format}");
     }
+
+    let title = title.to_path_safe();
+    let nickname = nickname.to_path_safe();
+    let username = username.to_path_safe();
+
     let url = format!("{API_BASE}/{platform}/user/{user_id}/post/{id}");
     let payload = client()
         .get(&url)
@@ -156,9 +162,9 @@ async fn browse(
 
         let dest = format
             .replace("{user_id}", &user_id)
-            .replace("{username}", &profile.username)
-            .replace("{nickname}", &profile.nickname)
             .replace("{post_id}", &id.to_string())
+            .replace("{username}", &username)
+            .replace("{nickname}", &nickname)
             .replace("{title}", &title);
         let dest = out.join(dest);
         if !fs::try_exists(&dest).await? {
@@ -186,29 +192,29 @@ async fn browse(
     ) in payload
         .previews
         .into_iter()
-        .filter(|p| p.typ == "thumbnail")
+        .filter(|p| p.ty == "thumbnail")
         .enumerate()
     {
+        let filename = filename.to_path_safe();
         let url = format!("{server}/data{path}").into_boxed_str();
-        let filename = PathBuf::from(filename.replace("/", "／"));
-        let mut location = format.to_string();
-        if !location.ends_with("{filename}")
-            && let Some(ext) = filename.extension()
+        let mut format = format.to_string();
+        if !format.ends_with("{filename}")
+            && let Some(ext) = Path::new(filename.as_ref()).extension()
         {
-            location.push('.');
-            location.push_str(ext.to_string_lossy().as_ref());
+            format.push('.');
+            format.push_str(ext.to_string_lossy().as_ref());
         }
         // todo use runtime formatting library
-        let location = location
+        let dest = format
             .replace("{user_id}", &user_id)
-            .replace("{username}", &profile.username)
-            .replace("{nickname}", &profile.nickname)
             .replace("{post_id}", &id.to_string())
-            .replace("{title}", &title)
             .replace("{index}", &index.to_string())
-            .replace("{filename}", filename.to_string_lossy().as_ref());
+            .replace("{username}", &username)
+            .replace("{nickname}", &nickname)
+            .replace("{title}", &title)
+            .replace("{filename}", &filename);
 
-        let mut dest = out.join(&location);
+        let mut dest = out.join(&dest);
         if fs::try_exists(&dest).await? {
             continue;
         }

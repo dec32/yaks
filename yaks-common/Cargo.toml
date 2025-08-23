@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow.workspace = true
 async-channel.workspace = true
+cow-utils.workspace = true
 flate2.workspace = true
 rand.workspace = true
 reqwest.workspace = true
