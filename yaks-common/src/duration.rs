@@ -1,21 +1,14 @@
-use std::time::Duration;
+use std::{ops::Range, time::Duration};
 
 use rand::Rng;
 
-pub struct PoliteDuration {
-    base: Duration,
-    jitter: u32,
-}
-impl PoliteDuration {
-    pub const fn from_millis(base: u64, jitter_percentage: u32) -> Self {
-        Self {
-            base: Duration::from_millis(base),
-            jitter: jitter_percentage,
-        }
+pub struct RandomDuration(Range<u64>);
+impl RandomDuration {
+    pub const fn from_millis(range: Range<u64>) -> Self {
+        Self(range)
     }
 
     pub fn get(&self) -> Duration {
-        let jitter = rand::rng().random_range(0..=self.jitter);
-        self.base * (100 + jitter) / 100
+        Duration::from_millis(rand::rng().random_range(self.0.clone()))
     }
 }

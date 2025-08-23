@@ -94,7 +94,7 @@ async fn browse(
         user_id,
         nickname,
         username,
-        post_count: _,
+        ..
     }: Profile,
     out: Leak<Path>,
     format: Leak<str>,

@@ -16,14 +16,14 @@ pub use conf::Conf;
 pub use engine::Engine;
 pub use file::{File, FileID};
 pub use post::{Post, PostID, Profile};
-use yaks_common::PoliteDuration;
+use yaks_common::RandomDuration;
 
 // consts
 pub(crate) const API_BASE: &str = "https://kemono.cr/api/v1";
 pub(crate) const PAGE_SIZE: usize = 50;
 pub(crate) const TIMEOUT: Duration = Duration::from_secs(30);
 pub(crate) const SCRAPE_INTERVAL: Duration = Duration::from_millis(500);
-pub(crate) const BROWSE_INTERVAL: PoliteDuration = PoliteDuration::from_millis(4000, 10);
+pub(crate) const BROWSE_INTERVAL: RandomDuration = RandomDuration::from_millis(4000..4500);
 pub(crate) const BROWSE_RETRY_AFTER: Duration = Duration::from_secs(120);
 pub(crate) const BROWSE_RETRY_TIMES: u8 = 3;
 pub(crate) const POST_BROWSERS: usize = 5;
