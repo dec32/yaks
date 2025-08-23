@@ -37,7 +37,7 @@ pub fn collect_files(
     posts: Vec<Post>,
     profile: Profile,
     out: Leak<Path>,
-    format: Leak<str>,
+    format: String,
     save_text: bool,
     errors: Sender<crate::Error>,
 ) -> Receiver<Vec<File>> {
@@ -52,10 +52,18 @@ pub fn collect_files(
     let posts = post_rx;
 
     // browse post
+    // TODO introduce structured concurrency here so tha
+    // we don't need to leak `format` and `out`
+    let format = format
+        .replace("\\", "/")
+        .trim_start_matches('/')
+        .to_string()
+        .into();
     for _ in 0..POST_BROWSERS {
         let tx = tx.clone();
         let posts = posts.clone();
         let errors = errors.clone();
+
         tokio::spawn(async move {
             while let Ok(post) = posts.recv().await {
                 let id = post.id;
@@ -110,11 +118,6 @@ async fn browse(
     struct BrowsablePost {
         #[serde(default, rename = "content")]
         text: String,
-    }
-
-    // todo: handle this properly
-    if format.starts_with("/") {
-        panic!("illegal format {format}");
     }
 
     let title = title.to_path_safe();

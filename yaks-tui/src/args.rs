@@ -10,7 +10,7 @@ pub struct Args {
     pub url: Leak<str>,
     pub range: Range,
     pub out: Leak<Path>,
-    pub format: Leak<str>,
+    pub format: String,
     pub save_text: bool,
     pub workers: u8,
     pub debug: bool,

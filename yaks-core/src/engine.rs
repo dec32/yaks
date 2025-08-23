@@ -19,7 +19,7 @@ impl Engine {
         url: Leak<str>,
         range: Range,
         out: Leak<Path>,
-        fmt: Leak<str>,
+        format: String,
         save_text: bool,
         workers: u8,
     ) -> Receiver<crate::Result<Event>> {
@@ -63,7 +63,7 @@ impl Engine {
             events.send_or_panic(Ok(Event::PostsExhausted)).await;
             // collect files. each file will have two copies. one for download and one for UI.
             let files_rx =
-                file::collect_files(posts, profile, out, fmt, save_text, error_tx.clone());
+                file::collect_files(posts, profile, out, format, save_text, error_tx.clone());
             let files = listen_files(files_rx, events.clone());
             // download
             let progress = worker::start_workers(workers, files.clone(), error_tx);
