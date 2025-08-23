@@ -9,7 +9,7 @@ use ustr::Ustr;
 use yaks_common::{ResponseExt, SenderExt, StrExt};
 
 use crate::{
-    API_BASE, BROWSE_INTERVAL, POST_BROWSERS, UserID, client,
+    API_BASE, BROWSE_INTERVAL, POST_BROWSERS, client,
     post::{Post, Profile},
 };
 
@@ -35,8 +35,6 @@ impl File {
 
 pub fn collect_files(
     posts: Vec<Post>,
-    platform: Leak<str>,
-    user_id: UserID,
     profile: Profile,
     out: Leak<Path>,
     format: Leak<str>,
@@ -61,7 +59,7 @@ pub fn collect_files(
         tokio::spawn(async move {
             while let Ok(post) = posts.recv().await {
                 let id = post.id;
-                match browse(post, platform, user_id, profile, out, format, save_text).await {
+                match browse(post, profile, out, format, save_text).await {
                     Ok(files) => {
                         tx.send_or_panic(files).await;
                     }
@@ -79,9 +77,9 @@ pub fn collect_files(
 
 async fn browse(
     Post { id, title }: Post,
-    platform: Leak<str>,
-    user_id: UserID,
     Profile {
+        platform,
+        user_id,
         nickname,
         username,
         post_count: _,

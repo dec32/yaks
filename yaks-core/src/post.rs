@@ -30,25 +30,45 @@ pub fn parse_url(url: Leak<str>) -> anyhow::Result<(Leak<str>, UserID)> {
     Ok((platform, user_id))
 }
 
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy)]
 pub struct Profile {
-    #[serde(rename = "name")]
+    pub platform: Leak<str>,
+    pub user_id: UserID,
     pub nickname: Leak<str>,
-    #[allow(unused)]
-    #[serde(rename = "public_id")]
     pub username: Leak<str>,
     pub post_count: usize,
 }
 
 /// Get the username of the artist
 pub async fn fetch_profile(platform: Leak<str>, user_id: UserID) -> anyhow::Result<Profile> {
-    let profile = client()
+    #[derive(Debug, Clone, Copy, Deserialize)]
+    struct Payload {
+        #[serde(rename = "name")]
+        pub nickname: Leak<str>,
+        #[allow(unused)]
+        #[serde(rename = "public_id")]
+        pub username: Leak<str>,
+        pub post_count: usize,
+    }
+
+    let Payload {
+        nickname,
+        username,
+        post_count,
+    } = client()
         .get(format!("{API_BASE}/{platform}/user/{user_id}/profile"))
         .send()
         .await?
         .error_for_status()?
-        .sneaky_json::<Profile>()
+        .sneaky_json::<Payload>()
         .await?;
+    let profile = Profile {
+        platform,
+        user_id,
+        nickname,
+        username,
+        post_count,
+    };
     Ok(profile)
 }
 
