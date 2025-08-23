@@ -1,4 +1,7 @@
-use std::{path::Path, sync::Arc};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use async_channel::{self, Receiver, Sender};
 use derive_more::Deref;
@@ -36,7 +39,7 @@ impl File {
 pub fn collect_files(
     posts: Vec<Post>,
     profile: Profile,
-    out: Leak<Path>,
+    out: PathBuf,
     format: String,
     save_text: bool,
     errors: Sender<crate::Error>,
@@ -53,12 +56,13 @@ pub fn collect_files(
 
     // browse post
     // TODO introduce structured concurrency here so tha
-    // we don't need to leak `format` and `out`
+    // we don't need to leak `format`, `out` and the fields of `Profile`
     let format = format
         .replace("\\", "/")
         .trim_start_matches('/')
         .to_string()
         .into();
+    let out = out.into();
     for _ in 0..POST_BROWSERS {
         let tx = tx.clone();
         let posts = posts.clone();
@@ -134,7 +138,7 @@ async fn browse(
         .await?;
 
     // ---------------------------------------------------------
-    // download the textaul content of the post
+    // save the text of the post
     // ---------------------------------------------------------
     if save_text && !payload.post.text.is_empty() {
         // save as markdown

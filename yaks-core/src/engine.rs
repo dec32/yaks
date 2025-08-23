@@ -1,7 +1,6 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use async_channel::{self, Receiver, Sender};
-use leaky::Leak;
 use yaks_common::{Range, SenderExt};
 
 use crate::{
@@ -16,9 +15,9 @@ pub struct Engine {}
 impl Engine {
     pub fn start(
         self,
-        url: Leak<str>,
+        url: String,
         range: Range,
-        out: Leak<Path>,
+        out: PathBuf,
         format: String,
         save_text: bool,
         workers: u8,
@@ -31,7 +30,7 @@ impl Engine {
 
         tokio::spawn(async move {
             // parsing url
-            let (platform, user_id) = match post::parse_url(url) {
+            let (platform, user_id) = match post::parse_url(&url) {
                 Ok(parsed) => parsed,
                 Err(e) => {
                     error_tx.send_or_panic(crate::Error::Profile(e)).await;

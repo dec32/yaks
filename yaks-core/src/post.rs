@@ -5,11 +5,9 @@ use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
 use yaks_common::{Range, ResponseExt};
 
-use crate::{
-    API_BASE, BROWSE_RETRY_AFTER, BROWSE_RETRY_TIMES, PAGE_SIZE, SCRAPE_INTERVAL, UserID, client,
-};
+use crate::{API_BASE, BROWSE_RETRY_AFTER, BROWSE_RETRY_TIMES, PAGE_SIZE, SCRAPE_INTERVAL, client};
 
-pub fn parse_url(url: Leak<str>) -> anyhow::Result<(Leak<str>, UserID)> {
+pub fn parse_url(url: &str) -> anyhow::Result<(&str, &str)> {
     let split = url
         .split("?")
         .next()
@@ -33,14 +31,14 @@ pub fn parse_url(url: Leak<str>) -> anyhow::Result<(Leak<str>, UserID)> {
 #[derive(Debug, Clone, Copy)]
 pub struct Profile {
     pub platform: Leak<str>,
-    pub user_id: UserID,
+    pub user_id: Leak<str>,
     pub nickname: Leak<str>,
     pub username: Leak<str>,
     pub post_count: usize,
 }
 
 /// Get the username of the artist
-pub async fn fetch_profile(platform: Leak<str>, user_id: UserID) -> anyhow::Result<Profile> {
+pub async fn fetch_profile(platform: &str, user_id: &str) -> anyhow::Result<Profile> {
     #[derive(Debug, Clone, Copy, Deserialize)]
     struct Payload {
         #[serde(rename = "name")]
@@ -62,6 +60,9 @@ pub async fn fetch_profile(platform: Leak<str>, user_id: UserID) -> anyhow::Resu
         .error_for_status()?
         .sneaky_json::<Payload>()
         .await?;
+
+    let platform = platform.to_string().into();
+    let user_id = user_id.to_string().into();
     let profile = Profile {
         platform,
         user_id,
@@ -83,8 +84,8 @@ pub struct Post {
 pub type PostID = u64;
 
 pub async fn scrape_posts(
-    platform: Leak<str>,
-    user_id: UserID,
+    platform: &str,
+    user_id: &str,
     post_count: usize,
     range: Range,
 ) -> anyhow::Result<Vec<Post>> {

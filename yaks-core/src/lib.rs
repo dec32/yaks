@@ -1,6 +1,5 @@
 use std::{result, sync::OnceLock, time::Duration};
 
-use leaky::Leak;
 use reqwest::{
     Client, ClientBuilder,
     header::{HeaderMap, HeaderValue},
@@ -55,7 +54,6 @@ fn default_headers() -> HeaderMap {
 
 // types
 pub type Result<T, E = crate::Error> = result::Result<T, E>;
-pub type UserID = Leak<str>;
 
 /// Event sent to the UI, by the engine, not the submodules.
 ///

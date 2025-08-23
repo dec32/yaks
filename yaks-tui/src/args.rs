@@ -1,15 +1,14 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::anyhow;
 use clap::Parser;
-use leaky::Leak;
 use yaks_common::Range;
 use yaks_core::Conf;
 
 pub struct Args {
-    pub url: Leak<str>,
+    pub url: String,
     pub range: Range,
-    pub out: Leak<Path>,
+    pub out: PathBuf,
     pub format: String,
     pub save_text: bool,
     pub workers: u8,
