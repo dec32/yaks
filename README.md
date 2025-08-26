@@ -4,9 +4,9 @@ It downloads content from Kemono.
 
 ![](docs/screenshot.png)
 
-[![[DOWNLOAD]](https://img.shields.io/badge/DOWNLOAD-Windows--x86__x64-0078D7)](https://github.com/dec32/yaks/releases/download/nightly/yaks-windows-x86_64.exe)  
+[![[DOWNLOAD]](https://img.shields.io/badge/DOWNLOAD-Windows--x86__64-0078D7)](https://github.com/dec32/yaks/releases/download/nightly/yaks-windows-x86_64.exe)  
 [![[DOWNLOAD]](https://img.shields.io/badge/DOWNLOAD-macOS--aarch64-D2D3D4)](https://github.com/dec32/yaks/releases/download/nightly/yaks-macos-aarch64)  
-[![[DOWNLOAD]](https://img.shields.io/badge/DOWNLOAD-Linux--x86__x64-F2E15D)](https://github.com/dec32/yaks/releases/download/nightly/yaks-linux-x86_64)  
+[![[DOWNLOAD]](https://img.shields.io/badge/DOWNLOAD-Linux--x86__64-F2E15D)](https://github.com/dec32/yaks/releases/download/nightly/yaks-linux-x86_64)  
 
 ## Why another one?
 
