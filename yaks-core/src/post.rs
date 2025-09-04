@@ -1,5 +1,5 @@
 use anyhow::bail;
-use leaky::Leak;
+
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
@@ -28,24 +28,24 @@ pub fn parse_url(url: &str) -> anyhow::Result<(&str, &str)> {
     Ok((platform, user_id))
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Profile {
-    pub platform: Leak<str>,
-    pub user_id: Leak<str>,
-    pub nickname: Leak<str>,
-    pub username: Leak<str>,
+    pub platform: String,
+    pub user_id: String,
+    pub nickname: String,
+    pub username: String,
     pub post_count: usize,
 }
 
 /// Get the username of the artist
 pub async fn fetch_profile(platform: &str, user_id: &str) -> anyhow::Result<Profile> {
-    #[derive(Debug, Clone, Copy, Deserialize)]
+    #[derive(Debug, Deserialize)]
     struct Payload {
         #[serde(rename = "name")]
-        pub nickname: Leak<str>,
+        pub nickname: String,
         #[allow(unused)]
         #[serde(rename = "public_id")]
-        pub username: Leak<str>,
+        pub username: String,
         pub post_count: usize,
     }
 

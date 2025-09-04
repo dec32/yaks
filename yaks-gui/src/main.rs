@@ -34,7 +34,7 @@ async fn handle(rx: Receiver<crate::Result<Event>>, ui: MainWindow) {
     while let Ok(event) = rx.recv().await {
         match event {
             Ok(event) => match event {
-                Event::Profile(profile) => todo!(),
+                Event::Profile => todo!(),
                 Event::Posts(_) => todo!(),
                 Event::PostsExhausted => todo!(),
                 Event::Files(files) => todo!(),

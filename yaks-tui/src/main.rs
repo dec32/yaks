@@ -76,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
     while let Ok(event) = rx.recv().await {
         match event {
             Ok(event) => match event {
-                Event::Profile(_profile) => {
+                Event::Profile => {
                     fetch_profile.set_style(style::finish());
                     fetch_profile.finish_with_message("Profile fetched");
                     scrape_posts = mp.add(scrape_posts);

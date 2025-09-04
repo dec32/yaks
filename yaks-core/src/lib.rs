@@ -62,7 +62,7 @@ pub type Result<T, E = crate::Error> = result::Result<T, E>;
 #[derive(Debug)]
 pub enum Event {
     /// The profile of the artist has been fetched.
-    Profile(Profile),
+    Profile,
     /// A page of posts are scraped.
     Posts(usize),
     /// All pages are handled. No more post to offer.

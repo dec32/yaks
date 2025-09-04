@@ -5,7 +5,6 @@ use std::{
 
 use async_channel::{self, Receiver, Sender};
 use derive_more::Deref;
-use leaky::Leak;
 use serde::Deserialize;
 use tokio::{fs, io::AsyncWriteExt};
 use ustr::Ustr;
@@ -55,23 +54,22 @@ pub fn collect_files(
     let posts = post_rx;
 
     // browse post
-    // TODO introduce structured concurrency here so tha
-    // we don't need to leak `format`, `out` and the fields of `Profile`
-    let format = format
-        .replace("\\", "/")
-        .trim_start_matches('/')
-        .to_string()
-        .into();
-    let out = out.into();
+    let format: Arc<str> = format.replace("\\", "/").trim_start_matches('/').into();
+    let out: Arc<Path> = out.as_path().into();
+    let profile: Arc<Profile> = profile.into();
     for _ in 0..POST_BROWSERS {
+        // chann
         let tx = tx.clone();
         let posts = posts.clone();
         let errors = errors.clone();
-
+        // arg
+        let profile = Arc::clone(&profile);
+        let out = Arc::clone(&out);
+        let format = Arc::clone(&format);
         tokio::spawn(async move {
             while let Ok(post) = posts.recv().await {
                 let id = post.id;
-                match browse(post, profile, out, format, save_text).await {
+                match browse(post, &profile, &out, &format, save_text).await {
                     Ok(files) => {
                         tx.send_or_panic(files).await;
                     }
@@ -95,9 +93,9 @@ async fn browse(
         nickname,
         username,
         ..
-    }: Profile,
-    out: Leak<Path>,
-    format: Leak<str>,
+    }: &Profile,
+    out: &Path,
+    format: &str,
     save_text: bool,
 ) -> anyhow::Result<Vec<File>> {
     #[derive(Debug, Deserialize)]

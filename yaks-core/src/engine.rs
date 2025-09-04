@@ -45,7 +45,7 @@ impl Engine {
                     return;
                 }
             };
-            events.send_or_panic(Ok(Event::Profile(profile))).await;
+            events.send_or_panic(Ok(Event::Profile)).await;
             // scrape all posts
             let posts = match post::scrape_posts(platform, user_id, profile.post_count, range).await
             {
